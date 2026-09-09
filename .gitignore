@@ -1,0 +1,7 @@
+node_modules
+bundle.js
+bundle.js.map
+specification.json
+.DS_Store
+# Vendored copy of the create-high5-nodes skill, installed locally to run verify.mjs
+.agents
