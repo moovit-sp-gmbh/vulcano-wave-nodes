@@ -5,7 +5,7 @@ import local_rules from "./eslint-local-rules/index.mjs";
 
 export default [
     { files: ["**/*.{js,mjs,cjs,ts}"] },
-    { ignores: ["**/bundle.js", "eslint-local-rules/**/*", "tests/framework/**/*", ".agents/**/*"] },
+    { ignores: ["**/bundle.js", "eslint-local-rules/**/*", ".agents/**/*"] },
     { languageOptions: { globals: globals.node } },
     pluginJs.configs.recommended,
     ...tseslint.configs.recommended,
