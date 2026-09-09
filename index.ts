@@ -11,7 +11,7 @@ import UploadMogrt from "./lib/nodes/UploadMogrt";
 export default new Catalog(
     "Vulcano",
     "Create graphics from templates and manage assets, projects and files in Vulcano",
-    "https://app.helmut.cloud/img/logo_white.webp",
+    "https://raw.githubusercontent.com/moovit-sp-gmbh/vulcano-wave-nodes/main/assets/vulcano-logo.png",
     "2.0.1",
     CreateGraphic,
     AddAssetsToProject,
