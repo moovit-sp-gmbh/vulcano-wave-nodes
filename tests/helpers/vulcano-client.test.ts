@@ -33,6 +33,15 @@ describe("normalizeBaseUrl", () => {
         expect(normalizeBaseUrl("https://vulcano.example.com//")).toBe("https://vulcano.example.com");
         expect(normalizeBaseUrl("https://vulcano.example.com")).toBe("https://vulcano.example.com");
     });
+
+    it("refuses something that is not a url, rather than building a broken request", () => {
+        expect(() => normalizeBaseUrl("vulcano.example.com")).toThrow(/is not a full address/);
+        expect(() => normalizeBaseUrl("file:///etc/passwd")).toThrow(/is not an http address/);
+    });
+
+    it("accepts the plain http url an on-premise instance is usually reached by", () => {
+        expect(normalizeBaseUrl("http://vulcano.local:8080/")).toBe("http://vulcano.local:8080");
+    });
 });
 
 describe("vulcanoRequest", () => {

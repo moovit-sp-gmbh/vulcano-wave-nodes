@@ -14,9 +14,19 @@ export const PROXY_FILE = { endpoint: "/proxy", action: "Could not download prox
 
 const REQUEST_TIMEOUT_MS = 60_000;
 
-/** Drops the trailing slashes a pasted url usually carries. */
+/** Drops the trailing slashes a pasted url usually carries, and rejects one that is not a url at all. */
 export function normalizeBaseUrl(baseUrl: string): string {
-    return baseUrl.replace(/\/+$/, "");
+    const trimmed = (baseUrl ?? "").trim().replace(/\/+$/, "");
+    let parsed: URL;
+    try {
+        parsed = new URL(trimmed);
+    } catch {
+        throw new Error(`Vulcano url is not usable — "${baseUrl}" is not a full address — enter it as https://vulcano.example.com`);
+    }
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        throw new Error(`Vulcano url is not usable — "${baseUrl}" is not an http address — enter it as https://vulcano.example.com`);
+    }
+    return trimmed;
 }
 
 /** Builds an authenticated request against a Vulcano instance. */
