@@ -7,6 +7,9 @@ export const REDACTED_TOKEN = "Bearer <your-token>";
 
 const REQUEST_TIMEOUT_MS = 60_000;
 
+/** No cap at all: the timeout above runs to the response headers, so it would cap upload size. */
+export const NO_TIMEOUT = 0;
+
 /** The engine never substitutes an input's declared defaultValue, so nodes apply it themselves. */
 export function inputOr<T>(value: unknown, fallback: T): T {
     return value === undefined || value === null || value === "" ? fallback : (value as T);

@@ -5,7 +5,8 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { fileUploadForm, localFileSize, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
+import { abortWhenCanceled, isCanceled } from "../helpers/cancellation";
+import { NO_TIMEOUT, fileUploadForm, localFileSize, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
 
 enum Input {
     VULCANO_URL = "Vulcano url",
@@ -91,18 +92,32 @@ export default class UploadMogrt extends Node {
         const fileSize = await localFileSize("Could not upload mogrt", Input.MOGRT_FILE_PATH, mogrtFilePath);
 
         this.wave.logger.updateProgressAndMessage(0, `Uploading ${path.basename(mogrtFilePath)}`);
+        const cancel = abortWhenCanceled(this.wave);
         try {
-            await this.wave.axiosHelper.makeRequest(
-                vulcanoRequest(baseUrl, apiToken, {
-                    method: "POST",
-                    url: "/files",
-                    params: { nodeId: treeNodeId },
-                    data: await fileUploadForm("filename", mogrtFilePath),
-                })
-            );
-        } catch (err: unknown) {
             // An unknown Tree node id is not an error to Vulcano — it creates the folder.
-            throw vulcanoError("Could not upload mogrt", err, "verify the Vulcano url, Api token and Tree node id");
+            const requestConfig = vulcanoRequest(baseUrl, apiToken, {
+                method: "POST",
+                url: "/files",
+                params: { nodeId: treeNodeId },
+                data: await fileUploadForm("filename", mogrtFilePath),
+                // The timeout runs to the response, and a followed redirect buffers the body in memory.
+                timeout: NO_TIMEOUT,
+                maxRedirects: 0,
+                signal: cancel.signal,
+            });
+            try {
+                await this.wave.axiosHelper.makeRequest(requestConfig);
+            } catch (err: unknown) {
+                if (isCanceled(this.wave)) {
+                    throw new Error("Upload canceled — the stream was stopped — no action needed");
+                }
+                throw vulcanoError("Could not upload mogrt", err, "verify the Vulcano url, Api token and Tree node id", {
+                    403: "Vulcano rejected the upload (403) — uploading templates needs an admin service token",
+                    500: "Vulcano could not store the file (500) — verify the Tree node id and the Vulcano templates folder",
+                });
+            }
+        } finally {
+            cancel.stop();
         }
 
         this.wave.outputs.setOutput(Output.UPLOADED_FILE_NAME, path.basename(mogrtFilePath));

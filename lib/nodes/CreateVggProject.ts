@@ -7,7 +7,8 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { fileUploadForm, localFileSize, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
+import { abortWhenCanceled, isCanceled } from "../helpers/cancellation";
+import { NO_TIMEOUT, fileUploadForm, localFileSize, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
 
 enum Input {
     VULCANO_URL = "Vulcano url",
@@ -136,43 +137,61 @@ export default class CreateVggProject extends Node {
         await localFileSize("Could not create vgg project", Input.VIDEO_FILE_PATH, videoFilePath);
 
         this.wave.logger.updateProgressAndMessage(0, `Uploading ${path.basename(videoFilePath)}`);
-        let baseVideoPath: string;
+        const cancel = abortWhenCanceled(this.wave);
         try {
-            baseVideoPath = await this.wave.axiosHelper.makeRequest(
-                vulcanoRequest(baseUrl, apiToken, {
-                    method: "POST",
-                    url: "/graphicGenerator/uploadBaseVideo",
-                    data: await fileUploadForm("file", videoFilePath),
-                    // The endpoint answers with a bare path, which is not valid JSON.
-                    responseType: "text",
-                })
-            );
-        } catch (err: unknown) {
-            throw vulcanoError("Could not upload the base video", err, "verify the Vulcano url, Api token and Video file path", {
-                415: "Vulcano does not accept this video format (415) — use a supported video file",
+            const uploadConfig = vulcanoRequest(baseUrl, apiToken, {
+                method: "POST",
+                url: "/graphicGenerator/uploadBaseVideo",
+                data: await fileUploadForm("file", videoFilePath),
+                // The timeout runs to the response, and a followed redirect buffers the body in memory.
+                timeout: NO_TIMEOUT,
+                maxRedirects: 0,
+                signal: cancel.signal,
+                // The endpoint answers with a bare path, which is not valid JSON.
+                responseType: "text",
             });
-        }
 
-        this.wave.logger.updateProgressAndMessage(50, `Saving project ${projectName}`);
-        const saveConfig: AxiosRequestConfig = vulcanoRequest(baseUrl, apiToken, {
-            method: "PUT",
-            url: `/graphicGenerator/jobs/${encodeURIComponent(projectId)}`,
-            data: { id: projectId, name: projectName, baseVideoPath, overlays: [] },
-        });
+            let baseVideoPath: string;
+            try {
+                baseVideoPath = await this.wave.axiosHelper.makeRequest(uploadConfig);
+            } catch (err: unknown) {
+                if (isCanceled(this.wave)) {
+                    throw new Error("Upload canceled — the stream was stopped — no action needed");
+                }
+                throw vulcanoError("Could not upload the base video", err, "verify the Vulcano url, Api token and Video file path", {
+                    400: "Vulcano rejected the video (400) — verify the Video file path is not an empty file",
+                    415: "Vulcano does not accept this video format (415) — use a supported video file",
+                    500: "Vulcano could not store the video (500) — check that its media folder is configured",
+                });
+            }
 
-        let project: VggProject;
-        try {
-            project = await this.wave.axiosHelper.makeRequest(saveConfig);
-        } catch (err: unknown) {
-            throw vulcanoError("Could not create vgg project", err, "verify the Vulcano url and Api token", {
-                409: "Vulcano is packaging a project with that id (409) — wait for it to finish or use a different Project id",
+            this.wave.logger.updateProgressAndMessage(50, `Saving project ${projectName}`);
+            const saveConfig: AxiosRequestConfig = vulcanoRequest(baseUrl, apiToken, {
+                method: "PUT",
+                url: `/graphicGenerator/jobs/${encodeURIComponent(projectId)}`,
+                data: { id: projectId, name: projectName, baseVideoPath, overlays: [] },
+                signal: cancel.signal,
             });
-        }
 
-        this.wave.outputs.setOutput(Output.PROJECT_ID, project.id ?? projectId);
-        this.wave.outputs.setOutput(Output.PROJECT_NAME, project.name ?? projectName);
-        this.wave.outputs.setOutput(Output.BASE_VIDEO_PATH, project.baseVideoPath ?? baseVideoPath);
-        this.wave.outputs.setOutput(Output.PROJECT, project);
-        this.wave.outputs.setOutput(Output.CURL, this.wave.axiosHelper.convertRequestToCurl(redactToken(saveConfig)));
+            let project: VggProject;
+            try {
+                project = await this.wave.axiosHelper.makeRequest(saveConfig);
+            } catch (err: unknown) {
+                if (isCanceled(this.wave)) {
+                    throw new Error("Save canceled — the stream was stopped — no action needed");
+                }
+                throw vulcanoError("Could not create vgg project", err, "verify the Vulcano url and Api token", {
+                    409: "Vulcano is packaging a project with that id (409) — wait for it to finish or use a different Project id",
+                });
+            }
+
+            this.wave.outputs.setOutput(Output.PROJECT_ID, project.id ?? projectId);
+            this.wave.outputs.setOutput(Output.PROJECT_NAME, project.name ?? projectName);
+            this.wave.outputs.setOutput(Output.BASE_VIDEO_PATH, project.baseVideoPath ?? baseVideoPath);
+            this.wave.outputs.setOutput(Output.PROJECT, project);
+            this.wave.outputs.setOutput(Output.CURL, this.wave.axiosHelper.convertRequestToCurl(redactToken(saveConfig)));
+        } finally {
+            cancel.stop();
+        }
     }
 }
