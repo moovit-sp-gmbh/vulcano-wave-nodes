@@ -5,7 +5,7 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { inputOr, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
+import { numberOr, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
 
 enum Input {
     VULCANO_URL = "Vulcano url",
@@ -157,7 +157,7 @@ export default class CreateGraphic extends Node {
             | Record<string, string>
             | undefined;
         const fileName = this.wave.inputs.getInputValueByInputName(Input.OUTPUT_FILE_NAME) as string | undefined;
-        const outputDurationSeconds = inputOr(this.wave.inputs.getInputValueByInputName(Input.OUTPUT_DURATION_SECONDS), 0);
+        const outputDurationSeconds = numberOr(this.wave.inputs.getInputValueByInputName(Input.OUTPUT_DURATION_SECONDS), 0);
 
         const properties = toAssetProperties(propertyValues);
         const requestConfig: AxiosRequestConfig = vulcanoRequest(baseUrl, apiToken, {

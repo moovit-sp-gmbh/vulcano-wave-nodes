@@ -12,6 +12,12 @@ export function inputOr<T>(value: unknown, fallback: T): T {
     return value === undefined || value === null || value === "" ? fallback : (value as T);
 }
 
+/** A NUMBER input can still arrive as text, so a node that compares or sends one coerces it first. */
+export function numberOr(value: unknown, fallback: number): number {
+    const parsed = Number(inputOr(value, fallback));
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 /** Drops the trailing slashes a pasted url usually carries, and rejects one that is not a url at all. */
 export function normalizeBaseUrl(baseUrl: string): string {
     const trimmed = (baseUrl ?? "").trim().replace(/\/+$/, "");

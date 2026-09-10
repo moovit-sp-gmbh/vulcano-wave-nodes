@@ -5,7 +5,7 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { inputOr, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
+import { inputOr, numberOr, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
 
 const DEFAULT_TEMPLATE_FOLDER_ID = "root/Templates";
 // Vulcano's own fallbacks are 20 / name / ascending, so the documented ones are sent explicitly.
@@ -151,7 +151,7 @@ export default class ListTemplates extends Node {
         const apiToken = this.wave.inputs.getInputValueByInputName(Input.API_TOKEN) as string;
         const folderId = this.wave.inputs.getInputValueByInputName(Input.TEMPLATE_FOLDER_ID) as string | undefined;
         const searchQuery = this.wave.inputs.getInputValueByInputName(Input.SEARCH_QUERY) as string | undefined;
-        const maxResults = inputOr(this.wave.inputs.getInputValueByInputName(Input.MAX_RESULTS), DEFAULT_MAX_RESULTS);
+        const maxResults = numberOr(this.wave.inputs.getInputValueByInputName(Input.MAX_RESULTS), DEFAULT_MAX_RESULTS);
         const sortBy = inputOr(this.wave.inputs.getInputValueByInputName(Input.SORT_BY), DEFAULT_SORT_BY);
         const sortDirection = inputOr(this.wave.inputs.getInputValueByInputName(Input.SORT_DIRECTION), DEFAULT_SORT_DIRECTION);
 

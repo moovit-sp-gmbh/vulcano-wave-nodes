@@ -5,6 +5,7 @@ import {
     REDACTED_TOKEN,
     fileUploadForm,
     inputOr,
+    numberOr,
     localFileSize,
     normalizeBaseUrl,
     redactToken,
@@ -124,5 +125,18 @@ describe("inputOr", () => {
         expect(inputOr(0, 35)).toBe(0);
         expect(inputOr(false, true)).toBe(false);
         expect(inputOr("created", "name")).toBe("created");
+    });
+});
+
+describe("numberOr", () => {
+    it("reads a number input that arrives as text", () => {
+        expect(numberOr("45", 0)).toBe(45);
+        expect(numberOr(45, 0)).toBe(45);
+    });
+
+    it("falls back when the input is empty or not a number at all", () => {
+        expect(numberOr("", 30)).toBe(30);
+        expect(numberOr(undefined, 30)).toBe(30);
+        expect(numberOr("soon", 30)).toBe(30);
     });
 });
