@@ -148,14 +148,17 @@ describe("two downloads into the same file name", () => {
         server = http.createServer((req, res) => {
             const fill = new URL(req.url ?? "", "http://x").searchParams.get("id") === "a" ? "A" : "B";
             res.writeHead(200, { "content-length": "40000" });
-            // Written in slices so both responses interleave on the event loop.
+            // Written in slices so both responses interleave, with the second asset answering late.
             let sent = 0;
-            const tick = setInterval(() => {
-                res.write(fill.repeat(4000));
-                if ((sent += 4000) < 40000) return;
-                clearInterval(tick);
-                res.end();
-            }, 1);
+            const send = () => {
+                const tick = setInterval(() => {
+                    res.write(fill.repeat(4000));
+                    if ((sent += 4000) < 40000) return;
+                    clearInterval(tick);
+                    res.end();
+                }, 1);
+            };
+            setTimeout(send, fill === "A" ? 0 : 60);
         });
         await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
         baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -183,5 +186,16 @@ describe("two downloads into the same file name", () => {
         expect(new Set(results.map((result) => result.filePath)).size).toBe(2);
         expect(await readFile(results[0].filePath, "utf8")).toBe("A".repeat(40000));
         expect(await readFile(results[1].filePath, "utf8")).toBe("B".repeat(40000));
+    });
+
+    it("keeps the file the first of them saved when the option is Skip", async () => {
+        const results = await Promise.all([
+            downloadAssetFile(fakeWave(), request({ baseUrl, assetId: "a", duplicateFileOption: DuplicateFileOption.SKIP })),
+            downloadAssetFile(fakeWave(), request({ baseUrl, assetId: "b", duplicateFileOption: DuplicateFileOption.SKIP })),
+        ]);
+
+        const target = path.join(folder, "clip.mov");
+        expect(results.map((result) => result.filePath)).toEqual([target, target]);
+        expect(await readFile(target, "utf8")).toBe("A".repeat(40000));
     });
 });

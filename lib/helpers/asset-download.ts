@@ -47,8 +47,8 @@ async function fileExists(filePath: string): Promise<boolean> {
     );
 }
 
-// Skip and Fail are decided before anything is downloaded; createFile cannot report
-// either one back, and Fail should not cost a transfer first.
+// Skip and Fail are the only options that answer for a file already there; createFile cannot
+// report either one back, and Fail should not cost a transfer first.
 async function existingTarget(options: ResolvedDownload, requestedPath: string): Promise<DownloadedFile | undefined> {
     const option = options.duplicateFileOption;
     if (option !== DuplicateFileOption.SKIP && option !== DuplicateFileOption.FAIL) return undefined;
@@ -85,7 +85,7 @@ async function streamToFile(
     return bytesReceived;
 }
 
-/** Streams the asset into the part file, leaving nothing behind when it fails. */
+/** Streams the asset into the part file; the request is built under the poller, because building it can throw. */
 async function downloadToPartFile(wave: Wave, options: ResolvedDownload, partPath: string): Promise<number> {
     const cancel = abortWhenCanceled(wave);
     try {
@@ -102,7 +102,7 @@ async function downloadToPartFile(wave: Wave, options: ResolvedDownload, partPat
     }
 }
 
-/** The transfer itself, so a url that is not usable reports itself rather than as a failed request. */
+/** Streams the response into the part file, reporting a failure in the node's own words. */
 async function runDownload(wave: Wave, options: ResolvedDownload, requestConfig: AxiosRequestConfig, partPath: string): Promise<number> {
     try {
         return await streamToFile(wave, await axios(requestConfig), partPath);
@@ -133,26 +133,31 @@ async function oneAtATime<T>(key: string, run: () => Promise<T>): Promise<T> {
     }
 }
 
-/** Moves the finished download onto the name the engine picks for the duplicate-file option. */
-async function movePartIntoPlace(wave: Wave, options: ResolvedDownload, requestedPath: string, partPath: string): Promise<string> {
+/** Claims the name the engine picks for the duplicate-file option and moves the download onto it. */
+async function movePartIntoPlace(
+    wave: Wave,
+    options: ResolvedDownload,
+    requestedPath: string,
+    partPath: string,
+    fileSize: number
+): Promise<DownloadedFile> {
     return oneAtATime(requestedPath, async () => {
-        const preexisting = await fileExists(requestedPath);
+        // Skip and Fail can only be honoured against the file that is there once the name is held.
+        const existing = await existingTarget(options, requestedPath);
+        if (existing) return existing;
+
         let finalPath: string | undefined;
         try {
             finalPath = await wave.fileAndFolderHelper.createFile(requestedPath, options.duplicateFileOption);
             await rename(partPath, finalPath);
-            return finalPath;
+            return { filePath: finalPath, fileSize };
         } catch (err: unknown) {
-            // createFile leaves an empty file behind; one that was already there is not ours to remove,
-            // unless Overwrite was asked for.
-            const ours = finalPath !== requestedPath || !preexisting || options.duplicateFileOption === DuplicateFileOption.OVERWRITE;
-            if (finalPath && ours) await unlink(finalPath).catch(() => undefined);
+            // Every branch createFile can reach from here writes an empty placeholder of its own.
+            if (finalPath) await unlink(finalPath).catch(() => undefined);
             const reason = describeError(err).replaceAll(partPath, requestedPath);
             throw new Error(
                 `${options.action} — ${requestedPath} could not be created: ${reason} — verify Target folder is writable and check Duplicate file option`
             );
-        } finally {
-            await unlink(partPath).catch(() => undefined);
         }
     });
 }
@@ -171,5 +176,9 @@ export async function downloadAssetFile(wave: Wave, request: AssetFileDownload):
     // cannot share the part file, and a failed transfer never touches the target.
     const partPath = `${requestedPath}.${randomBytes(6).toString("hex")}.part`;
     const fileSize = await downloadToPartFile(wave, options, partPath);
-    return { filePath: await movePartIntoPlace(wave, options, requestedPath, partPath), fileSize };
+    try {
+        return await movePartIntoPlace(wave, options, requestedPath, partPath, fileSize);
+    } finally {
+        await unlink(partPath).catch(() => undefined);
+    }
 }
