@@ -1,6 +1,6 @@
 {
     "name": "vulcano-wave-nodes",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "helmut.cloud wave node catalog for Vulcano",
     "main": "index.js",
     "directories": {
