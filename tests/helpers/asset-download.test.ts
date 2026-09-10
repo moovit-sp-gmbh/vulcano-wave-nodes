@@ -127,13 +127,13 @@ describe("downloadAssetFile", () => {
         expect(polls).toBe(polledSoFar);
     });
 
-    // An untouched Duplicate file option arrives as "", which createFile does not recognise
-    // and would silently let the download replace the file with.
-    it("treats an option the engine never filled in as Fail", async () => {
+    // An untouched Duplicate file option arrives as "", and a wired one can be any string at
+    // all; createFile recognises neither and would let the download replace the file.
+    it.each(["", "Increment name", "skip"])("treats %p as Fail, because the engine never checks a select", async (option) => {
         const target = path.join(folder, "clip.mov");
         await writeFile(target, "the take we still need");
 
-        await expect(downloadAssetFile(fakeWave(), request({ duplicateFileOption: "" as DuplicateFileOption }))).rejects.toThrow(
+        await expect(downloadAssetFile(fakeWave(), request({ duplicateFileOption: option as DuplicateFileOption }))).rejects.toThrow(
             /already exists/
         );
         expect(await readFile(target, "utf8")).toBe("the take we still need");
@@ -150,15 +150,17 @@ describe("two downloads into the same file name", () => {
             res.writeHead(200, { "content-length": "40000" });
             // Written in slices so both responses interleave, with the second asset answering late.
             let sent = 0;
-            const send = () => {
-                const tick = setInterval(() => {
-                    res.write(fill.repeat(4000));
-                    if ((sent += 4000) < 40000) return;
-                    clearInterval(tick);
-                    res.end();
-                }, 1);
-            };
-            setTimeout(send, fill === "A" ? 0 : 60);
+            setTimeout(
+                () => {
+                    const tick = setInterval(() => {
+                        res.write(fill.repeat(4000));
+                        if ((sent += 4000) < 40000) return;
+                        clearInterval(tick);
+                        res.end();
+                    }, 1);
+                },
+                fill === "A" ? 0 : 60
+            );
         });
         await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
         baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

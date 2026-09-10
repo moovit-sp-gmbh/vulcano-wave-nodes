@@ -31,6 +31,14 @@ export interface AssetFileDownload {
 
 type ResolvedDownload = AssetFileDownload & { duplicateFileOption: DuplicateFileOption };
 
+const OPTIONS: string[] = Object.values(DuplicateFileOption);
+
+// The engine substitutes no defaultValue and does not check a select against its own options,
+// so a wired value can be anything; createFile keeps the existing file for one it does not know.
+function knownOption(value: DuplicateFileOption | undefined): DuplicateFileOption {
+    return OPTIONS.includes(value as string) ? (value as DuplicateFileOption) : DuplicateFileOption.FAIL;
+}
+
 /** Keeps the download inside Target folder: a name carrying `..` or a path would otherwise escape it. */
 export function targetPath(action: string, targetFolder: string, fileName: string): string {
     const name = path.basename(fileName ?? "");
@@ -161,9 +169,7 @@ async function movePartIntoPlace(
 
 /** Streams one asset's file into a target folder, honouring the duplicate-file option. */
 export async function downloadAssetFile(wave: Wave, request: AssetFileDownload): Promise<DownloadedFile> {
-    // The engine never substitutes defaultValue, and createFile silently keeps the existing
-    // file for an option it does not know, so an empty one has to land on Fail here.
-    const options: ResolvedDownload = { ...request, duplicateFileOption: request.duplicateFileOption || DuplicateFileOption.FAIL };
+    const options: ResolvedDownload = { ...request, duplicateFileOption: knownOption(request.duplicateFileOption) };
     const requestedPath = targetPath(options.action, options.targetFolder, options.fileName);
 
     const existing = await existingTarget(options, requestedPath);
