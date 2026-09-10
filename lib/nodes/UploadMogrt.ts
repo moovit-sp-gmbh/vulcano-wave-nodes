@@ -5,7 +5,7 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { abortWhenCanceled, isCanceled } from "../helpers/cancellation";
+import { isCanceled, withCancel } from "../helpers/cancellation";
 import { NO_TIMEOUT, fileUploadForm, localFileSize, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
 
 enum Input {
@@ -92,8 +92,7 @@ export default class UploadMogrt extends Node {
         const fileSize = await localFileSize("Could not upload mogrt", Input.MOGRT_FILE_PATH, mogrtFilePath);
 
         this.wave.logger.updateProgressAndMessage(0, `Uploading ${path.basename(mogrtFilePath)}`);
-        const cancel = abortWhenCanceled(this.wave);
-        try {
+        await withCancel(this.wave, async (signal) => {
             // An unknown Tree node id is not an error to Vulcano — it creates the folder.
             const requestConfig = vulcanoRequest(baseUrl, apiToken, {
                 method: "POST",
@@ -103,7 +102,7 @@ export default class UploadMogrt extends Node {
                 // The timeout runs to the response, and a followed redirect buffers the body in memory.
                 timeout: NO_TIMEOUT,
                 maxRedirects: 0,
-                signal: cancel.signal,
+                signal,
             });
             try {
                 await this.wave.axiosHelper.makeRequest(requestConfig);
@@ -116,9 +115,7 @@ export default class UploadMogrt extends Node {
                     500: "Vulcano could not store the file (500) — verify the Tree node id and the Vulcano templates folder",
                 });
             }
-        } finally {
-            cancel.stop();
-        }
+        });
 
         this.wave.outputs.setOutput(Output.UPLOADED_FILE_NAME, path.basename(mogrtFilePath));
         this.wave.outputs.setOutput(Output.FILE_SIZE, fileSize);

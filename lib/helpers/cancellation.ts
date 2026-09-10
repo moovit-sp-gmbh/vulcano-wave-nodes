@@ -27,3 +27,13 @@ export function abortWhenCanceled(wave: Wave): { signal: AbortSignal; stop: () =
     }, 1_000);
     return { signal: controller.signal, stop: () => clearInterval(poller) };
 }
+
+/** Runs work under a cancel poller, stopping it however the work ends. */
+export async function withCancel<T>(wave: Wave, run: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    const cancel = abortWhenCanceled(wave);
+    try {
+        return await run(cancel.signal);
+    } finally {
+        cancel.stop();
+    }
+}

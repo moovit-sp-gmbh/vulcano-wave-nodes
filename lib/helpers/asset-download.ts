@@ -6,7 +6,7 @@ import { pipeline } from "node:stream/promises";
 import axios, { AxiosRequestConfig } from "axios";
 import { DuplicateFileOption } from "wave-engine/models/DuplicateFileOptionEnum";
 import Wave from "wave-engine/helpers/Wave";
-import { abortWhenCanceled, isCanceled, safely } from "./cancellation";
+import { isCanceled, safely, withCancel } from "./cancellation";
 import { describeError, vulcanoError, vulcanoRequest } from "./vulcano-client";
 
 /** The endpoint each download node streams from, paired with the error it reports. */
@@ -87,19 +87,16 @@ async function streamToFile(
 
 /** Streams the asset into the part file; the request is built under the poller, because building it can throw. */
 async function downloadToPartFile(wave: Wave, options: ResolvedDownload, partPath: string): Promise<number> {
-    const cancel = abortWhenCanceled(wave);
-    try {
+    return withCancel(wave, async (signal) => {
         const requestConfig = vulcanoRequest(options.baseUrl, options.apiToken, {
             method: "GET",
             url: options.endpoint,
             params: { id: options.assetId },
             responseType: "stream",
-            signal: cancel.signal,
+            signal,
         });
-        return await runDownload(wave, options, requestConfig, partPath);
-    } finally {
-        cancel.stop();
-    }
+        return runDownload(wave, options, requestConfig, partPath);
+    });
 }
 
 /** Streams the response into the part file, reporting a failure in the node's own words. */
