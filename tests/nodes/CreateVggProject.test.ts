@@ -5,8 +5,8 @@ describe("newVggProjectId", () => {
         expect(newVggProjectId()).toMatch(/^draft_\d+_\w+$/);
     });
 
-    it("does not repeat itself", () => {
-        expect(newVggProjectId()).not.toEqual(newVggProjectId());
+    it("does not repeat itself, so two runs never save over each other", () => {
+        expect(new Set([newVggProjectId(), newVggProjectId(), newVggProjectId()]).size).toBe(3);
     });
 });
 
