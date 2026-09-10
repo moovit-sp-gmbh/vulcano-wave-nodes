@@ -7,6 +7,11 @@ export const REDACTED_TOKEN = "Bearer <your-token>";
 
 const REQUEST_TIMEOUT_MS = 60_000;
 
+/** The engine never substitutes an input's declared defaultValue, so nodes apply it themselves. */
+export function inputOr<T>(value: unknown, fallback: T): T {
+    return value === undefined || value === null || value === "" ? fallback : (value as T);
+}
+
 /** Drops the trailing slashes a pasted url usually carries, and rejects one that is not a url at all. */
 export function normalizeBaseUrl(baseUrl: string): string {
     const trimmed = (baseUrl ?? "").trim().replace(/\/+$/, "");

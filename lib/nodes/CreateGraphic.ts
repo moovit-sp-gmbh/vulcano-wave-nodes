@@ -5,7 +5,7 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
+import { inputOr, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
 
 enum Input {
     VULCANO_URL = "Vulcano url",
@@ -157,7 +157,7 @@ export default class CreateGraphic extends Node {
             | Record<string, string>
             | undefined;
         const fileName = this.wave.inputs.getInputValueByInputName(Input.OUTPUT_FILE_NAME) as string | undefined;
-        const outputDurationSeconds = this.wave.inputs.getInputValueByInputName(Input.OUTPUT_DURATION_SECONDS) as number;
+        const outputDurationSeconds = inputOr(this.wave.inputs.getInputValueByInputName(Input.OUTPUT_DURATION_SECONDS), 0);
 
         const properties = toAssetProperties(propertyValues);
         const requestConfig: AxiosRequestConfig = vulcanoRequest(baseUrl, apiToken, {
@@ -165,7 +165,8 @@ export default class CreateGraphic extends Node {
             url: "/assets",
             // reduced=true: Vulcano merges these values onto the stored template asset.
             params: this.wave.axiosHelper.removeEmptyFields({ user, reduced: true, filename: fileName }),
-            data: { id: templateAssetId, properties, outputDurationSeconds },
+            // Zero and absent both mean the template duration, so the field is only sent when it is set.
+            data: { id: templateAssetId, properties, ...(outputDurationSeconds > 0 ? { outputDurationSeconds } : {}) },
         });
 
         let graphic: VulcanoAsset;

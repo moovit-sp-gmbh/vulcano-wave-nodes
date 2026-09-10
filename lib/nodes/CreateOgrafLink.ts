@@ -5,7 +5,9 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { normalizeBaseUrl, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
+import { inputOr, normalizeBaseUrl, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
+
+const DEFAULT_EXPIRY_DAYS = 30;
 
 enum Input {
     VULCANO_URL = "Vulcano url",
@@ -156,7 +158,7 @@ export default class CreateOgrafLink extends Node {
         const baseUrl = this.wave.inputs.getInputValueByInputName(Input.VULCANO_URL) as string;
         const apiToken = this.wave.inputs.getInputValueByInputName(Input.API_TOKEN) as string;
         const assetId = this.wave.inputs.getInputValueByInputName(Input.ASSET_ID) as string;
-        const expiryDays = this.wave.inputs.getInputValueByInputName(Input.LINK_EXPIRY_DAYS) as number;
+        const expiryDays = inputOr(this.wave.inputs.getInputValueByInputName(Input.LINK_EXPIRY_DAYS), DEFAULT_EXPIRY_DAYS);
         const label = this.wave.inputs.getInputValueByInputName(Input.LINK_LABEL) as string | undefined;
         const controlValuesRaw = this.wave.inputs.getInputValueByInputName(Input.LINK_CONTROL_VALUES) as string | undefined;
         const data = parseLinkControlValues(controlValuesRaw);

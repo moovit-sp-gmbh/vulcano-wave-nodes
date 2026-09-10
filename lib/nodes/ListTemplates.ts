@@ -5,9 +5,13 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
+import { inputOr, redactToken, vulcanoError, vulcanoRequest } from "../helpers/vulcano-client";
 
 const DEFAULT_TEMPLATE_FOLDER_ID = "root/Templates";
+// Vulcano's own fallbacks are 20 / name / ascending, so the documented ones are sent explicitly.
+const DEFAULT_MAX_RESULTS = 35;
+const DEFAULT_SORT_BY = "created";
+const DEFAULT_SORT_DIRECTION = "desc";
 
 enum Input {
     VULCANO_URL = "Vulcano url",
@@ -147,15 +151,15 @@ export default class ListTemplates extends Node {
         const apiToken = this.wave.inputs.getInputValueByInputName(Input.API_TOKEN) as string;
         const folderId = this.wave.inputs.getInputValueByInputName(Input.TEMPLATE_FOLDER_ID) as string | undefined;
         const searchQuery = this.wave.inputs.getInputValueByInputName(Input.SEARCH_QUERY) as string | undefined;
-        const maxResults = this.wave.inputs.getInputValueByInputName(Input.MAX_RESULTS) as number;
-        const sortBy = this.wave.inputs.getInputValueByInputName(Input.SORT_BY) as string;
-        const sortDirection = this.wave.inputs.getInputValueByInputName(Input.SORT_DIRECTION) as string;
+        const maxResults = inputOr(this.wave.inputs.getInputValueByInputName(Input.MAX_RESULTS), DEFAULT_MAX_RESULTS);
+        const sortBy = inputOr(this.wave.inputs.getInputValueByInputName(Input.SORT_BY), DEFAULT_SORT_BY);
+        const sortDirection = inputOr(this.wave.inputs.getInputValueByInputName(Input.SORT_DIRECTION), DEFAULT_SORT_DIRECTION);
 
         const requestConfig: AxiosRequestConfig = vulcanoRequest(baseUrl, apiToken, {
             method: "GET",
             url: "/assets",
             params: this.wave.axiosHelper.removeEmptyFields({
-                id: folderId?.trim() || DEFAULT_TEMPLATE_FOLDER_ID,
+                id: inputOr(folderId?.trim(), DEFAULT_TEMPLATE_FOLDER_ID),
                 search: searchQuery,
                 page: 0,
                 limit: maxResults,

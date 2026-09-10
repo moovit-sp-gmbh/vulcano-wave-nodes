@@ -4,6 +4,7 @@ import path from "node:path";
 import {
     REDACTED_TOKEN,
     fileUploadForm,
+    inputOr,
     localFileSize,
     normalizeBaseUrl,
     redactToken,
@@ -109,5 +110,19 @@ describe("fileUploadForm", () => {
         expect(part).toBeInstanceOf(Blob);
         expect(part.name).toBe("Lower third.mogrt");
         expect(await part.text()).toBe("MOGRT");
+    });
+});
+
+describe("inputOr", () => {
+    it("substitutes the default for every shape an untouched input arrives in", () => {
+        expect(inputOr(undefined, 35)).toBe(35);
+        expect(inputOr(null, 35)).toBe(35);
+        expect(inputOr("", 35)).toBe(35);
+    });
+
+    it("keeps a value the operator actually set, including zero and false", () => {
+        expect(inputOr(0, 35)).toBe(0);
+        expect(inputOr(false, true)).toBe(false);
+        expect(inputOr("created", "name")).toBe("created");
     });
 });
