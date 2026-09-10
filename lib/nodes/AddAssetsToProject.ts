@@ -116,9 +116,7 @@ export default class AddAssetsToProject extends Node {
         try {
             await this.wave.axiosHelper.makeRequest(requestConfig);
         } catch (err: unknown) {
-            throw vulcanoError("Could not add assets", err, "verify the Vulcano url, Api token and Project id", {
-                500: "Vulcano could not add the assets (500) — check the Vulcano log for the failing asset id",
-            });
+            throw vulcanoError("Could not add assets", err, "verify the Vulcano url, Api token and Project id");
         }
 
         this.wave.outputs.setOutput(Output.PROJECT_ID, projectId);
