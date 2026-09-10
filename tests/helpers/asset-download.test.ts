@@ -107,6 +107,26 @@ describe("downloadAssetFile", () => {
         expect(await readFile(target, "utf8")).toBe("kept");
     });
 
+    it("stops polling for a cancel when the request is never sent", async () => {
+        let polls = 0;
+        const wave = {
+            general: {
+                isCanceled: () => {
+                    polls += 1;
+                    return false;
+                },
+            },
+            logger: { updateProgressAndMessage: () => undefined },
+            fileAndFolderHelper: { createFile: engineCreateFile },
+        } as unknown as Wave;
+
+        await expect(downloadAssetFile(wave, request({ baseUrl: "vulcano.example.com" }))).rejects.toThrow(/is not a full address/);
+
+        const polledSoFar = polls;
+        await new Promise((resolve) => setTimeout(resolve, 1_200));
+        expect(polls).toBe(polledSoFar);
+    });
+
     // An untouched Duplicate file option arrives as "", which createFile does not recognise
     // and would silently let the download replace the file with.
     it("treats an option the engine never filled in as Fail", async () => {

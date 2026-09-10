@@ -3,7 +3,7 @@ import { createWriteStream } from "node:fs";
 import { access, rename, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import axios from "axios";
+import axios, { AxiosRequestConfig } from "axios";
 import { DuplicateFileOption } from "wave-engine/models/DuplicateFileOptionEnum";
 import Wave from "wave-engine/helpers/Wave";
 import { abortWhenCanceled, isCanceled, safely } from "./cancellation";
@@ -88,13 +88,22 @@ async function streamToFile(
 /** Streams the asset into the part file, leaving nothing behind when it fails. */
 async function downloadToPartFile(wave: Wave, options: ResolvedDownload, partPath: string): Promise<number> {
     const cancel = abortWhenCanceled(wave);
-    const requestConfig = vulcanoRequest(options.baseUrl, options.apiToken, {
-        method: "GET",
-        url: options.endpoint,
-        params: { id: options.assetId },
-        responseType: "stream",
-        signal: cancel.signal,
-    });
+    try {
+        const requestConfig = vulcanoRequest(options.baseUrl, options.apiToken, {
+            method: "GET",
+            url: options.endpoint,
+            params: { id: options.assetId },
+            responseType: "stream",
+            signal: cancel.signal,
+        });
+        return await runDownload(wave, options, requestConfig, partPath);
+    } finally {
+        cancel.stop();
+    }
+}
+
+/** The transfer itself, so a url that is not usable reports itself rather than as a failed request. */
+async function runDownload(wave: Wave, options: ResolvedDownload, requestConfig: AxiosRequestConfig, partPath: string): Promise<number> {
     try {
         return await streamToFile(wave, await axios(requestConfig), partPath);
     } catch (err: unknown) {
@@ -107,8 +116,6 @@ async function downloadToPartFile(wave: Wave, options: ResolvedDownload, partPat
         throw vulcanoError(options.action, err, "verify the Vulcano url, Api token and Asset id", {
             404: "Vulcano has no such file for this asset (404) — verify the Asset id and that the file has finished rendering",
         });
-    } finally {
-        cancel.stop();
     }
 }
 
