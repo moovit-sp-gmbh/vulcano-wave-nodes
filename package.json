@@ -24,7 +24,7 @@
         "wave"
     ],
     "author": "MoovIT Software Products GmbH",
-    "license": "ISC",
+    "license": "MIT",
     "dependencies": {
         "axios": "^1.9.0",
         "hcloud-sdk": "^20.1.0",

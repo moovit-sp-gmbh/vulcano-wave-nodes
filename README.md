@@ -501,3 +501,7 @@ async execute(): Promise<void> {
     this.wave.outputs.setOutput(Output.DURATION, performance.now() - startTime);
 }
 ```
+
+## License
+
+[MIT](./LICENSE) © MoovIT Software Products GmbH
