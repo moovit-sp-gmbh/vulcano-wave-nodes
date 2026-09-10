@@ -5,7 +5,7 @@ import {
     StreamNodeSpecificationOutputType,
     StreamNodeSpecificationV3,
 } from "hcloud-sdk/lib/interfaces/high5";
-import { HIRES_FILE, downloadAssetFile } from "../helpers/vulcano-client";
+import { HIRES_FILE, downloadAssetFile } from "../helpers/asset-download";
 
 enum Input {
     VULCANO_URL = "Vulcano url",
