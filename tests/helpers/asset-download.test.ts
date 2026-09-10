@@ -58,7 +58,6 @@ function request(overrides: Partial<Parameters<typeof downloadAssetFile>[1]> = {
         assetId: "asset-1",
         targetFolder: folder,
         fileName: "clip.mov",
-        duplicateFileOption: DuplicateFileOption.OVERWRITE,
         ...overrides,
     };
 }
@@ -106,6 +105,18 @@ describe("downloadAssetFile", () => {
             /already exists/
         );
         expect(await readFile(target, "utf8")).toBe("kept");
+    });
+
+    // An untouched Duplicate file option arrives as "", which createFile does not recognise
+    // and would silently let the download replace the file with.
+    it("treats an option the engine never filled in as Fail", async () => {
+        const target = path.join(folder, "clip.mov");
+        await writeFile(target, "the take we still need");
+
+        await expect(downloadAssetFile(fakeWave(), request({ duplicateFileOption: "" as DuplicateFileOption }))).rejects.toThrow(
+            /already exists/
+        );
+        expect(await readFile(target, "utf8")).toBe("the take we still need");
     });
 });
 

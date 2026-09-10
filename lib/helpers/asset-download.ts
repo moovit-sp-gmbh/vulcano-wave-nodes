@@ -26,8 +26,10 @@ export interface AssetFileDownload {
     assetId: string;
     targetFolder: string;
     fileName: string;
-    duplicateFileOption: DuplicateFileOption;
+    duplicateFileOption?: DuplicateFileOption;
 }
+
+type ResolvedDownload = AssetFileDownload & { duplicateFileOption: DuplicateFileOption };
 
 /** Keeps the download inside Target folder: a name carrying `..` or a path would otherwise escape it. */
 export function targetPath(action: string, targetFolder: string, fileName: string): string {
@@ -47,7 +49,7 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 // Skip and Fail are decided before anything is downloaded; createFile cannot report
 // either one back, and Fail should not cost a transfer first.
-async function existingTarget(options: AssetFileDownload, requestedPath: string): Promise<DownloadedFile | undefined> {
+async function existingTarget(options: ResolvedDownload, requestedPath: string): Promise<DownloadedFile | undefined> {
     const option = options.duplicateFileOption;
     if (option !== DuplicateFileOption.SKIP && option !== DuplicateFileOption.FAIL) return undefined;
     if (!(await fileExists(requestedPath))) return undefined;
@@ -84,7 +86,7 @@ async function streamToFile(
 }
 
 /** Streams the asset into the part file, leaving nothing behind when it fails. */
-async function downloadToPartFile(wave: Wave, options: AssetFileDownload, partPath: string): Promise<number> {
+async function downloadToPartFile(wave: Wave, options: ResolvedDownload, partPath: string): Promise<number> {
     const cancel = abortWhenCanceled(wave);
     const requestConfig = vulcanoRequest(options.baseUrl, options.apiToken, {
         method: "GET",
@@ -111,7 +113,7 @@ async function downloadToPartFile(wave: Wave, options: AssetFileDownload, partPa
 }
 
 /** Moves the finished download onto the name the engine picks for the duplicate-file option. */
-async function movePartIntoPlace(wave: Wave, options: AssetFileDownload, requestedPath: string, partPath: string): Promise<string> {
+async function movePartIntoPlace(wave: Wave, options: ResolvedDownload, requestedPath: string, partPath: string): Promise<string> {
     let finalPath: string | undefined;
     try {
         finalPath = await wave.fileAndFolderHelper.createFile(requestedPath, options.duplicateFileOption);
@@ -130,7 +132,10 @@ async function movePartIntoPlace(wave: Wave, options: AssetFileDownload, request
 }
 
 /** Streams one asset's file into a target folder, honouring the duplicate-file option. */
-export async function downloadAssetFile(wave: Wave, options: AssetFileDownload): Promise<DownloadedFile> {
+export async function downloadAssetFile(wave: Wave, request: AssetFileDownload): Promise<DownloadedFile> {
+    // The engine never substitutes defaultValue, and createFile silently keeps the existing
+    // file for an option it does not know, so an empty one has to land on Fail here.
+    const options: ResolvedDownload = { ...request, duplicateFileOption: request.duplicateFileOption || DuplicateFileOption.FAIL };
     const requestedPath = targetPath(options.action, options.targetFolder, options.fileName);
 
     const existing = await existingTarget(options, requestedPath);
