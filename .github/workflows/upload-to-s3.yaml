@@ -62,19 +62,20 @@ jobs:
         id: upload
         uses: moovit-sp-gmbh/hcloud-catalog-upload-action@v1.1.1
         with:
-          endpoint: <S3 endpoint>
-          bucket: <name of your S3 bucket>
-          public_endpoint: <S3 public read endpoint for the specified bucket>
-          region: <region of your S3 bucket>
-          access_key_id: ${{ secrets.<secret set in the GH repo> }}
-          secret_access_key: ${{ secrets.<secret set in the GH repo> }}
+          # Set these as repository variables, and the two keys as repository secrets.
+          endpoint: ${{ vars.S3_ENDPOINT }}
+          bucket: ${{ vars.S3_BUCKET }}
+          public_endpoint: ${{ vars.S3_PUBLIC_ENDPOINT }}
+          region: ${{ vars.S3_REGION }}
+          access_key_id: ${{ secrets.S3_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
           name: ${{ steps.catalog-info.outputs.name }}
           description: ${{ steps.catalog-info.outputs.description }}
           logo: ${{ steps.catalog-info.outputs.logoUrl }}
           minimum_engine_version: ${{ steps.catalog-info.outputs.minimumEngineVersion }}
           version: ${{ steps.catalog-version.outputs.version }}
           source_dir: ${{ github.workspace }}/upload
-          dest_dir: "<your path>"
+          dest_dir: ${{ vars.S3_DEST_DIR }}
           on_fail: delete
 
       - name: Print catalog registry URL

@@ -86,7 +86,7 @@ In the future this process will become more streamlined as we improve the extern
 
 ## Publishing your catalog
 
-Publishing your catalog will happen automatically whenever a new tag is pushed. A GitHub action is set to bundle the catalog and upload it to a specified S3 storage bucket. You will need to update the [upload-to-s3.yml](./.github/workflows/upload-to-s3.yaml) file to get the correct information for your S3 storage.
+Publishing your catalog will happen automatically whenever a new tag is pushed. A GitHub action is set to bundle the catalog and upload it to a specified S3 storage bucket. Before pushing the first tag, set the repository variables `S3_ENDPOINT`, `S3_BUCKET`, `S3_PUBLIC_ENDPOINT`, `S3_REGION` and `S3_DEST_DIR`, and the repository secrets `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`, which [upload-to-s3.yaml](./.github/workflows/upload-to-s3.yaml) reads.
 
 ## Staying in sync
 
