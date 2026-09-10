@@ -4,7 +4,7 @@
     "date": "2026-09-10",
     "changes": [
       {
-        "description": "Download highres file and Download proxy file now honour Duplicate file option when it is left empty. It used to overwrite an existing file instead of failing, which is what the documented default says",
+        "description": "Download highres file and Download proxy file now honour Duplicate file option when it is left empty or set to a value they do not recognise. Both used to overwrite an existing file instead of failing, which is what the documented default says",
         "type": "Bug Fixes",
         "breaking": false
       },
@@ -49,7 +49,7 @@
         "breaking": false
       },
       {
-        "description": "Two downloads saving the same file name into the same folder no longer end up sharing one file, with each node reporting it as its own. Increment name now gives the second download a file of its own",
+        "description": "Two downloads saving the same file name into the same folder no longer end up sharing one file, with each node reporting it as its own. Increment name now gives the second download a file of its own, and Skip keeps the file the first one saved",
         "type": "Bug Fixes",
         "breaking": false
       },
