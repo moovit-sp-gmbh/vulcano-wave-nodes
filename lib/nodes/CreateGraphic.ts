@@ -35,6 +35,7 @@ export interface VulcanoAsset {
     name?: string;
     status?: string;
     properties?: AssetProperty[];
+    outputDurationSeconds?: number;
 }
 
 /** Turns the Graphic property values map into the property array a reduced asset expects. */
@@ -46,8 +47,8 @@ export function toAssetProperties(values: Record<string, string> | undefined): A
 // Vulcano drops property ids the template does not own and still answers 200, so the
 // returned ids are the only proof a value was applied.
 export function unappliedPropertyIds(sent: AssetProperty[], returned: AssetProperty[] | undefined): string[] {
-    if (!returned || returned.length === 0) return [];
-    const applied = new Set(returned.map((property) => property.id));
+    // An answer with no properties at all means every value sent was dropped.
+    const applied = new Set((returned ?? []).map((property) => property.id));
     return sent.filter((property) => !applied.has(property.id)).map((property) => property.id);
 }
 
@@ -174,9 +175,24 @@ export default class CreateGraphic extends Node {
             graphic = await this.wave.axiosHelper.makeRequest(requestConfig);
         } catch (err: unknown) {
             throw vulcanoError("Could not create graphic", err, "verify the Vulcano url, Api token and Template asset id", {
-                400: "Vulcano rejected the payload (400) — verify Graphic property values are keyed by property id",
+                400: "Vulcano rejected the request (400) — verify Vulcano user names an existing user",
                 404: "Vulcano has no asset with that Template asset id (404) — verify the Template asset id",
             });
+        }
+
+        // Vulcano answers 200 after discarding what it would not apply, so both are checked here.
+        const dropped = unappliedPropertyIds(properties, graphic.properties);
+        if (dropped.length > 0) {
+            throw new Error(
+                `Could not create graphic — Vulcano ignored the property ids ${dropped.join(", ")} because the template does not define them — verify Graphic property values against the template, then delete graphic ${graphic.id}`
+            );
+        }
+        if (outputDurationSeconds > 0 && graphic.outputDurationSeconds !== outputDurationSeconds) {
+            const applied =
+                typeof graphic.outputDurationSeconds === "number" ? `${graphic.outputDurationSeconds}s` : "the template duration";
+            throw new Error(
+                `Could not create graphic — Vulcano applied ${applied} instead of the requested ${outputDurationSeconds}s, which it allows only within 100 seconds of the template length — adjust Output duration seconds, then delete graphic ${graphic.id}`
+            );
         }
 
         this.wave.outputs.setOutput(Output.GRAPHIC_ID, graphic.id);

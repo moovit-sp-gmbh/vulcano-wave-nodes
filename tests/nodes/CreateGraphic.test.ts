@@ -31,8 +31,12 @@ describe("unappliedPropertyIds", () => {
         expect(unappliedPropertyIds(sent, [...sent, { id: "prop-9", value: "untouched" }])).toEqual([]);
     });
 
-    it("stays silent when the response carries no properties to compare against", () => {
-        expect(unappliedPropertyIds(sent, undefined)).toEqual([]);
-        expect(unappliedPropertyIds(sent, [])).toEqual([]);
+    it("names every id when the answer carries no properties at all", () => {
+        expect(unappliedPropertyIds(sent, undefined)).toEqual(["prop-1", "headline"]);
+        expect(unappliedPropertyIds(sent, [])).toEqual(["prop-1", "headline"]);
+    });
+
+    it("reports nothing when nothing was sent", () => {
+        expect(unappliedPropertyIds([], undefined)).toEqual([]);
     });
 });
