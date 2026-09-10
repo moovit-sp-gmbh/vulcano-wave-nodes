@@ -2,7 +2,7 @@
 ---
 title: Add assets to project
 description: |
-  The Add assets to project node adds assets that already exist in Vulcano to one of its projects. Wire Asset ids from an upstream Create graphic node to collect a freshly rendered graphic into the project it belongs to, and use Target location when the project has folders and the assets belong in a specific one. Vulcano reports success even when it skipped an asset id it does not know, so check its log if a project ends up short.
+  The Add assets to project node adds assets that already exist in Vulcano to one of its projects. Wire Asset ids from an upstream Create graphic node to collect a freshly rendered graphic into the project it belongs to, and use Target location to hand the assets to the connected archive as well. Vulcano answers with success whatever happened on its side — an asset id it does not know is skipped, and even a failure part way through is reported as success — so check its log if a project ends up short.
 inputs:
   - name: Vulcano url
     description: |
@@ -38,7 +38,7 @@ inputs:
         value: '["b3f0a1c2-9d44-4e18-8a77-2c1b5e6f0a91"]'
   - name: Target location
     description: |
-      Enter the folder inside the project to place the assets in. Leave it empty to add them at the project root
+      Enter the archive location to transfer the assets to. Leave it empty to only add them to the project. Vulcano starts the transfer but does not store the location on the asset, so it is not visible afterwards
     type: STRING
     mandatory: false
     advanced: true
@@ -83,7 +83,7 @@ connectors:
           If Asset ids holds no usable id once blank entries are dropped
       - name: API Error
         description: |
-          If Vulcano could not add the assets (500) — its own log names the asset that failed
+          If Vulcano returned an unexpected error response
       - name: Permission Denied
         description: |
           If the provided Api token is invalid, expired, or lacks write access

@@ -46,7 +46,7 @@ inputs:
         value: '{"6f1c1d24-6a63-4d9b-9a0e-6f5a2a4d1c88": "Breaking news"}'
   - name: Output file name
     description: |
-      Enter the file name for the rendered graphic. Leave it empty to let Vulcano apply the naming pattern configured on the template
+      Enter the file name for the rendered graphic. Leave it empty to let Vulcano apply the naming pattern configured on the template. Reusing a name that is already taken in the same folder replaces that graphic: Vulcano deletes the earlier one and hands its id back, unless the instance is configured to allow duplicates
     type: STRING
     mandatory: false
     advanced: true
@@ -55,7 +55,7 @@ inputs:
         value: "lower-third-01"
   - name: Output duration seconds
     description: |
-      Enter the render duration in seconds. Zero keeps the duration stored on the template
+      Enter the render duration in seconds. Zero keeps the duration stored on the template. Vulcano only accepts a duration within 100 seconds of the template's own length and fails the node otherwise, and a template whose length it does not know keeps its stored duration
     type: INT
     mandatory: false
     advanced: true
@@ -116,7 +116,10 @@ connectors:
     causes:
       - name: Invalid Input
         description: |
-          If Graphic property values names a property id the template does not have, so the value would have been silently ignored
+          If Graphic property values names a property id the template does not have, so the value would have been silently ignored, or if Vulcano rejects the request because Vulcano user is not an existing user (400)
+      - name: Invalid Configuration
+        description: |
+          If Output duration seconds is further than 100 seconds from the template's own length, or the template has no known length, so Vulcano rendered a different duration than the one asked for
       - name: Asset Not Found
         description: |
           If Vulcano has no asset with the given Template asset id (404)

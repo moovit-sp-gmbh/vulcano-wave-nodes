@@ -30,7 +30,7 @@ inputs:
         value: "b3f0a1c2-9d44-4e18-8a77-2c1b5e6f0a91"
   - name: Link expiry days
     description: |
-      Enter the number of days the link stays valid, between 1 and 365
+      Enter the number of days the link stays valid, between 1 and 365. Leaving it empty uses 30 days, since Vulcano needs a whole number here
     type: INT
     mandatory: false
     advanced: true
@@ -112,13 +112,16 @@ connectors:
           If Link control values is not valid JSON, or is valid JSON that is not an object
       - name: Invalid Configuration
         description: |
-          If Vulcano rejects the request (400) because Link expiry days is outside 1 to 365
+          If Vulcano rejects the request (400) because Link expiry days is not a whole number between 1 and 365
       - name: Asset Not Found
         description: |
           If Vulcano has no asset with the given Asset id, or that asset has no OGraf bundle (404)
       - name: Permission Denied
         description: |
           If the provided Api token is invalid, expired, or lacks write access
+      - name: Response Parsing Error
+        description: |
+          If Vulcano answers with a link that carries no token, which leaves no address to hand out
       - name: API Error
         description: |
           If Vulcano returned an unexpected error response, or could not be reached

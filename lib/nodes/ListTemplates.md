@@ -38,7 +38,7 @@ inputs:
         value: "lower third"
   - name: Max results
     description: |
-      Enter the maximum number of templates to return
+      Enter the maximum number of templates to return. Vulcano applies it separately to the templates the folder holds itself and to the ones only linked into it, so a folder with links can return up to twice as many
     type: INT
     mandatory: false
     advanced: true
@@ -85,7 +85,7 @@ inputs:
 outputs:
   - name: Total count
     description: |
-      Returns how many templates the folder holds in total, so a later node can branch on an empty result or notice that Max results cut the list short
+      Returns how many templates the folder holds in total, so a later node can branch on an empty result or notice that Max results cut the list short. With Search query set it counts the matches instead of the whole folder
     type: INT
     example:
       - name: Total count

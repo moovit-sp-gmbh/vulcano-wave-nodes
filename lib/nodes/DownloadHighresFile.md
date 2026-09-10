@@ -2,7 +2,7 @@
 ---
 title: Download highres file
 description: |
-  The Download highres file node saves the rendered high resolution file of a Vulcano asset onto the machine the agent runs on. It streams the file, reporting progress as it goes, and removes a half written file if the download fails or the stream is canceled. Wire Asset id from an upstream Create graphic node once the graphic has finished rendering.
+  The Download highres file node saves the rendered high resolution file of a Vulcano asset onto the machine the agent runs on. It streams the file into a temporary file next to the target and moves it into place only once the transfer has finished, so a failed or canceled transfer never leaves a half written file behind and never touches a file that was already there. Progress is reported while it runs. Wire Asset id from an upstream Create graphic node once the graphic has finished rendering. An asset that is a template rather than a rendered graphic has no high resolution video, and Vulcano answers with its Motion Graphics template file instead — give File name a .mogrt ending in that case.
 inputs:
   - name: Vulcano url
     description: |
@@ -38,7 +38,7 @@ inputs:
         value: "/Users/helmut/downloads"
   - name: File name
     description: |
-      Enter the file name to save the download as
+      Enter the file name to save the download as. Only the name itself is used, so a path in front of it is ignored and the file always lands in Target folder
     type: STRING
     mandatory: true
     example:
@@ -46,7 +46,7 @@ inputs:
         value: "lower-third-01.mov"
   - name: Duplicate file option
     description: |
-      Choose how to handle an existing file with the same name
+      Choose how to handle an existing file with the same name. Leaving it empty is the same as choosing Fail
     type: STRING_SELECT
     mandatory: false
     advanced: true
@@ -69,7 +69,7 @@ inputs:
           Add a counter to the new file name so both files are kept
     example:
       - name: Duplicate file option
-        value: FAIL
+        value: Fail
 outputs:
   - name: File path
     description: |
@@ -99,6 +99,9 @@ connectors:
       - name: Permission Denied
         description: |
           If the provided Api token is invalid, expired, or lacks read access
+      - name: Invalid Input
+        description: |
+          If File name is empty or is not a usable file name
       - name: Invalid Configuration
         description: |
           If the Target folder cannot be written to, or a file of that name already exists and the duplicate file option is Fail
@@ -107,6 +110,9 @@ connectors:
           If Vulcano returned an unexpected error response, or could not be reached
       - name: Timeout
         description: |
-          If the stream is canceled while the download is running
+          If Vulcano does not start answering the request within a minute
+      - name: Stream Canceled
+        description: |
+          If the stream is stopped while the download is running, in which case the partly downloaded file is removed
 ---
 ::

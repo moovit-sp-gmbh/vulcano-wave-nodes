@@ -54,7 +54,7 @@ outputs:
 connectors:
   - name: Success
     description: |
-      Triggered when the mogrt is uploaded successfully. Vulcano analyses the template afterwards, so its properties are not readable straight away
+      Triggered when Vulcano has stored the file. It analyses the template afterwards, so success means the bytes arrived, not that the template is ready — its properties are not readable straight away
   - name: Fail
     description: |
       Triggered when the mogrt cannot be uploaded
@@ -67,9 +67,12 @@ connectors:
           If there is no file at the Mogrt file path, or the agent cannot read it
       - name: Permission Denied
         description: |
-          If the provided Api token is invalid, expired, or lacks write access
+          If the provided Api token is invalid or expired, or is not an admin token — uploading templates needs one (403)
+      - name: Stream Canceled
+        description: |
+          If the stream is stopped while the upload is running
       - name: API Error
         description: |
-          If Vulcano returned an unexpected error response, or could not be reached
+          If Vulcano could not store the file (500), which usually means the Tree node id or its templates folder is wrong, or it returned another unexpected error response, or could not be reached
 ---
 ::

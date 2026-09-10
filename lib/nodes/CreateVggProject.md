@@ -38,7 +38,7 @@ inputs:
         value: "Interview"
   - name: Project id
     description: |
-      Enter the id of the new project. Leave it empty to generate a fresh draft id, in the same shape the Vulcano user interface uses
+      Enter the id of the new project. Leave it empty to generate a fresh draft id, in the same shape the Vulcano user interface uses. An id that is already in use replaces that project completely, including every graphic already placed on it
     type: STRING
     mandatory: false
     advanced: true
@@ -102,15 +102,18 @@ connectors:
           If there is no file at the Video file path, or the agent cannot read it
       - name: Invalid Input
         description: |
-          If Vulcano does not accept the video format (415)
+          If Vulcano does not accept the video format (415), or rejects the upload because the file is empty (400)
       - name: Duplicate
         description: |
           If a project with the given Project id is already being packaged (409) and must not be overwritten
       - name: Permission Denied
         description: |
           If the provided Api token is invalid, expired, or lacks write access
+      - name: Stream Canceled
+        description: |
+          If the stream is stopped while the video is uploading or the project is being saved
       - name: API Error
         description: |
-          If Vulcano returned an unexpected error response, or could not be reached
+          If Vulcano could not store the uploaded video (500), which usually means its media folder is not configured, or it returned another unexpected error response, or could not be reached
 ---
 ::
