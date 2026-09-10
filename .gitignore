@@ -5,3 +5,5 @@ specification.json
 .DS_Store
 # Vendored copy of the create-high5-nodes skill, installed locally to run verify.mjs
 .agents
+site
+changelog-converted.json

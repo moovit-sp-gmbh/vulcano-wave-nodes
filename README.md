@@ -86,7 +86,31 @@ In the future this process will become more streamlined as we improve the extern
 
 ## Publishing your catalog
 
-Publishing your catalog will happen automatically whenever a new tag is pushed. A GitHub action is set to bundle the catalog and upload it to a specified S3 storage bucket. Before pushing the first tag, set the repository variables `S3_ENDPOINT`, `S3_BUCKET`, `S3_PUBLIC_ENDPOINT`, `S3_REGION` and `S3_DEST_DIR`, and the repository secrets `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`, which [upload-to-s3.yaml](./.github/workflows/upload-to-s3.yaml) reads.
+Publishing happens automatically whenever a tag matching `v*` is pushed. [publish-catalog.yaml](./.github/workflows/publish-catalog.yaml) bundles the catalog and commits it to the `gh-pages` branch, which GitHub Pages serves. No bucket, no credentials and no repository secrets are involved.
+
+To cut a release, add the entry to `changelog.json` first — `scripts/check-changelog.mjs` fails the build unless the newest entry's version matches the tag — then tag:
+
+    npm version minor        # keeps package.json in step, must match changelog.json[0].version
+    git push --follow-tags
+
+A published version is immutable: the workflow refuses to overwrite a version folder that already exists, so a broken release is fixed by publishing the next version, never by re-tagging.
+
+The published site keeps every release side by side (it has no landing page — browse the files directly):
+
+    https://moovit-sp-gmbh.github.io/vulcano-wave-nodes/
+    ├── index.json                  # the registry Stream Designer reads
+    ├── changelog.json
+    └── <version>/
+        ├── bundle.js               # what the Agent downloads
+        ├── specification.json
+        ├── catalog-info.yaml
+        └── docs/*.md               # the wavedocs
+
+Add the catalog to a space once via Stream Designer → **Manage node catalogs** → **Add external catalog**, pasting:
+
+    https://moovit-sp-gmbh.github.io/vulcano-wave-nodes/index.json
+
+Later releases show up in that same dialog; a space admin picks the new version per space. Nothing updates by itself, and streams keep the catalog version they were built with.
 
 ## Staying in sync
 

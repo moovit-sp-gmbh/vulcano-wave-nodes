@@ -1,0 +1,89 @@
+name: Publish catalog
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: write
+
+concurrency: publish-catalog
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract version from tag and remove "v" prefix
+        id: catalog-version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$TAG" != v?* ]]; then
+            echo "Tag '$TAG' does not start with 'v' and a version. Failing the workflow."
+            exit 1
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: npm test
+
+      - name: Bundle
+        run: npm run bundle
+
+      - name: Aggregate node specifications
+        run: npm run build
+
+      - name: Check changelog and convert to correct format
+        env:
+          VERSION: ${{ steps.catalog-version.outputs.version }}
+        run: |
+          node scripts/check-changelog.mjs "$VERSION"
+          node scripts/convert-changelog.mjs
+
+      - name: Check out the published site
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+
+      - name: Add this version to the site
+        env:
+          VERSION: ${{ steps.catalog-version.outputs.version }}
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: |
+          if [ -d "site/$VERSION" ]; then
+            echo "Version $VERSION is already published. Bump the version instead of re-tagging."
+            exit 1
+          fi
+          touch site/.nojekyll
+          mkdir -p "site/$VERSION/docs"
+          cp bundle.js specification.json "site/$VERSION/"
+          cp changelog-converted.json site/changelog.json
+          find lib/nodes -type f -name '*.md' -exec cp {} "site/$VERSION/docs/" \;
+          node scripts/publish-site.mjs site "$VERSION" "$SITE_URL"
+
+      - name: Publish to GitHub Pages
+        working-directory: site
+        env:
+          VERSION: ${{ steps.catalog-version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: publish catalog $VERSION"
+          git push
+
+      - name: Print catalog registry URL
+        run: echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/index.json"
