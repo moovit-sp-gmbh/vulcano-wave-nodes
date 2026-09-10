@@ -119,23 +119,42 @@ async function runDownload(wave: Wave, options: ResolvedDownload, requestConfig:
     }
 }
 
+const finishing = new Map<string, Promise<unknown>>();
+
+/** createFile picks a free name and rename claims it, so two downloads must not interleave between them. */
+async function oneAtATime<T>(key: string, run: () => Promise<T>): Promise<T> {
+    const mine = (finishing.get(key) ?? Promise.resolve()).then(run, run);
+    const settled = mine.catch(() => undefined);
+    finishing.set(key, settled);
+    try {
+        return await mine;
+    } finally {
+        if (finishing.get(key) === settled) finishing.delete(key);
+    }
+}
+
 /** Moves the finished download onto the name the engine picks for the duplicate-file option. */
 async function movePartIntoPlace(wave: Wave, options: ResolvedDownload, requestedPath: string, partPath: string): Promise<string> {
-    let finalPath: string | undefined;
-    try {
-        finalPath = await wave.fileAndFolderHelper.createFile(requestedPath, options.duplicateFileOption);
-        await rename(partPath, finalPath);
-        return finalPath;
-    } catch (err: unknown) {
-        // createFile leaves an empty file behind, which is worse for the operator than none.
-        if (finalPath) await unlink(finalPath).catch(() => undefined);
-        const reason = describeError(err).replaceAll(partPath, requestedPath);
-        throw new Error(
-            `${options.action} — ${requestedPath} could not be created: ${reason} — verify Target folder is writable and check Duplicate file option`
-        );
-    } finally {
-        await unlink(partPath).catch(() => undefined);
-    }
+    return oneAtATime(requestedPath, async () => {
+        const preexisting = await fileExists(requestedPath);
+        let finalPath: string | undefined;
+        try {
+            finalPath = await wave.fileAndFolderHelper.createFile(requestedPath, options.duplicateFileOption);
+            await rename(partPath, finalPath);
+            return finalPath;
+        } catch (err: unknown) {
+            // createFile leaves an empty file behind; one that was already there is not ours to remove,
+            // unless Overwrite was asked for.
+            const ours = finalPath !== requestedPath || !preexisting || options.duplicateFileOption === DuplicateFileOption.OVERWRITE;
+            if (finalPath && ours) await unlink(finalPath).catch(() => undefined);
+            const reason = describeError(err).replaceAll(partPath, requestedPath);
+            throw new Error(
+                `${options.action} — ${requestedPath} could not be created: ${reason} — verify Target folder is writable and check Duplicate file option`
+            );
+        } finally {
+            await unlink(partPath).catch(() => undefined);
+        }
+    });
 }
 
 /** Streams one asset's file into a target folder, honouring the duplicate-file option. */

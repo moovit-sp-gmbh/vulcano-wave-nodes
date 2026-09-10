@@ -173,4 +173,15 @@ describe("two downloads into the same file name", () => {
         expect(written).toHaveLength(40000);
         expect(new Set(written)).toHaveProperty("size", 1);
     });
+
+    it("gives each download the file it reports, instead of one they both claim", async () => {
+        const results = await Promise.all([
+            downloadAssetFile(fakeWave(), request({ baseUrl, assetId: "a", duplicateFileOption: DuplicateFileOption.INCREMENT_NAME })),
+            downloadAssetFile(fakeWave(), request({ baseUrl, assetId: "b", duplicateFileOption: DuplicateFileOption.INCREMENT_NAME })),
+        ]);
+
+        expect(new Set(results.map((result) => result.filePath)).size).toBe(2);
+        expect(await readFile(results[0].filePath, "utf8")).toBe("A".repeat(40000));
+        expect(await readFile(results[1].filePath, "utf8")).toBe("B".repeat(40000));
+    });
 });
