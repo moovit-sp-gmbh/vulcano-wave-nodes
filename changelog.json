@@ -1,5 +1,49 @@
 [
   {
+    "version": "1.1.0",
+    "date": "2026-09-10",
+    "commitGroups": [
+      {
+        "title": "Bug Fixes",
+        "commits": [
+          {
+            "message": "Download highres file and Download proxy file now honour Duplicate file option when it is left empty or set to a value they do not recognise. Both used to overwrite an existing file instead of failing, which is what the documented default says"
+          },
+          {
+            "message": "A download that fails or is canceled no longer touches a file that was already there. The bytes are written beside the target and moved into place only once the transfer is complete"
+          },
+          {
+            "message": "File name is now confined to Target folder, so a name carrying a path can no longer write somewhere else"
+          },
+          {
+            "message": "Create graphic now fails when Vulcano silently drops a property id the template does not define, or renders a duration other than the one asked for. Both used to be reported as success"
+          },
+          {
+            "message": "Create ograf link now fails when Vulcano answers with a link that has no token, instead of handing out an address that cannot be opened"
+          },
+          {
+            "message": "Upload mogrt and Create vgg project no longer cut large uploads short after a minute"
+          },
+          {
+            "message": "List templates now applies the documented defaults for Template folder id, Max results, Sort by and Sort direction, and Create ograf link applies its 30 day default for Link expiry days"
+          },
+          {
+            "message": "A Vulcano url that is not a usable address is now reported as such before any request is sent"
+          },
+          {
+            "message": "An upload that is left running against an unresponsive Vulcano now stops when the stream is canceled, instead of holding the agent"
+          },
+          {
+            "message": "Two downloads saving the same file name into the same folder no longer end up sharing one file, with each node reporting it as its own. Increment name now gives the second download a file of its own, and Skip keeps the file the first one saved"
+          },
+          {
+            "message": "Max results and Link expiry days are now read correctly when they arrive as text, which is what a value typed in the designer or wired from another node looks like"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.0",
     "date": "2026-09-10",
     "commitGroups": [
