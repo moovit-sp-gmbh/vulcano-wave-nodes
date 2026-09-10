@@ -8,6 +8,9 @@ if (!siteDir || !version || !url) {
     process.exit(1);
 }
 
+// The Agent concatenates this url without a separator and caches on md5(url + version), so it is uncorrectable.
+if (!/^https:\/\/\S+[^/]$/.test(url)) throw new Error(`Catalog url must be https and must not end in "/": ${url}`);
+
 const catalog = createRequire(import.meta.url)(path.resolve("bundle.js")).default;
 for (const field of ["name", "description", "logoUrl", "minimumEngineVersion"]) {
     if (typeof catalog[field] !== "string" || catalog[field] === "") {
@@ -27,6 +30,7 @@ if (!Array.isArray(registry.versions)) registry.versions = [];
 
 // Stream Designer reads this list; the Agent then fetches <url>/<version>/bundle.js.
 const entry = { version, url, dev: version.includes("dev"), minimumEngineVersion: catalog.minimumEngineVersion };
+// Matched on the url too: a version served from a new url is a new cache entry, not a replacement.
 const existing = registry.versions.findIndex((v) => v.version === entry.version && v.url === entry.url);
 if (existing === -1) registry.versions.push(entry);
 else registry.versions[existing] = entry;

@@ -10,6 +10,12 @@ permissions:
 
 concurrency: publish-catalog
 
+env:
+  AWS_REGION: eu-central-1
+  CATALOG_BUCKET: moov-vulcano-wave-nodes
+  # Baked immutably into every index.json entry, so it must never change.
+  SITE_URL: https://moov-vulcano-wave-nodes.s3.eu-central-1.amazonaws.com
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -61,20 +67,39 @@ jobs:
       - name: Add this version to the site
         env:
           VERSION: ${{ steps.catalog-version.outputs.version }}
-          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
         run: |
           if [ -d "site/$VERSION" ]; then
             echo "Version $VERSION is already published. Bump the version instead of re-tagging."
             exit 1
           fi
-          touch site/.nojekyll
           mkdir -p "site/$VERSION/docs"
           cp bundle.js specification.json "site/$VERSION/"
           cp changelog-converted.json site/changelog.json
           find lib/nodes -type f -name '*.md' -exec cp {} "site/$VERSION/docs/" \;
           node scripts/publish-site.mjs site "$VERSION" "$SITE_URL"
 
-      - name: Publish to GitHub Pages
+      - name: Publish to S3
+        env:
+          VERSION: ${{ steps.catalog-version.outputs.version }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          : "${AWS_ACCESS_KEY_ID:?add the AWS_ACCESS_KEY_ID repository secret}"
+          : "${AWS_SECRET_ACCESS_KEY:?add the AWS_SECRET_ACCESS_KEY repository secret}"
+          # The bucket is what agents cache, so it decides whether this version is already published.
+          if aws s3api head-object --bucket "$CATALOG_BUCKET" --key "$VERSION/specification.json" >/dev/null 2>&1; then
+            echo "Version $VERSION is already published. Bump the version instead of re-tagging."
+            exit 1
+          fi
+          aws s3 sync "site/$VERSION/" "s3://$CATALOG_BUCKET/$VERSION/" --no-progress --cache-control 'public, max-age=31536000, immutable'
+          aws s3 cp "site/$VERSION/catalog-info.yaml" "s3://$CATALOG_BUCKET/$VERSION/catalog-info.yaml" --content-type text/yaml --cache-control 'public, max-age=31536000, immutable'
+          # Proves the url about to be written into index.json really serves this version.
+          curl -fsS -o /dev/null "$SITE_URL/$VERSION/bundle.js"
+          aws s3 cp site/changelog.json "s3://$CATALOG_BUCKET/changelog.json" --cache-control 'public, max-age=60'
+          aws s3 cp site/index.json "s3://$CATALOG_BUCKET/index.json" --cache-control 'public, max-age=60'
+          echo "$SITE_URL/index.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record the publish on gh-pages
         working-directory: site
         env:
           VERSION: ${{ steps.catalog-version.outputs.version }}
@@ -84,6 +109,3 @@ jobs:
           git add -A
           git commit -m "chore: publish catalog $VERSION"
           git push
-
-      - name: Print catalog registry URL
-        run: echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/index.json"

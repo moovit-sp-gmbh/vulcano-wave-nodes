@@ -86,7 +86,9 @@ In the future this process will become more streamlined as we improve the extern
 
 ## Publishing your catalog
 
-Publishing happens automatically whenever a tag matching `v*` is pushed. [publish-catalog.yaml](./.github/workflows/publish-catalog.yaml) bundles the catalog and commits it to the `gh-pages` branch, which GitHub Pages serves. No bucket, no credentials and no repository secrets are involved.
+Publishing happens automatically whenever a tag matching `v*` is pushed. [publish-catalog.yaml](./.github/workflows/publish-catalog.yaml) bundles the catalog, uploads it to the `moov-vulcano-wave-nodes` S3 bucket in `eu-central-1` and keeps a copy on the `gh-pages` branch as the release record. It needs the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` repository secrets.
+
+The bucket serves the catalog rather than GitHub Pages because Stream Designer fetches `index.json` from the browser with an `x-hcloud-user-agent` header, which makes it a preflighted cross-origin request. GitHub Pages answers `OPTIONS` with 405 and no CORS headers; the bucket answers 200 with `access-control-allow-origin: *`. The Pages copy is still reachable and carries the same registry, but pasting its url into Stream Designer fails the preflight — always use the bucket url below.
 
 To cut a release, add the entry to `changelog.json` first — `scripts/check-changelog.mjs` fails the build unless the newest entry's version matches the tag — then tag:
 
@@ -95,9 +97,9 @@ To cut a release, add the entry to `changelog.json` first — `scripts/check-cha
 
 A published version is immutable: the workflow refuses to overwrite a version folder that already exists, so a broken release is fixed by publishing the next version, never by re-tagging.
 
-The published site keeps every release side by side (it has no landing page — browse the files directly):
+The published site keeps every release side by side. The bucket grants `s3:GetObject` only, so there is no index page and no listing — each url has to be known:
 
-    https://moovit-sp-gmbh.github.io/vulcano-wave-nodes/
+    https://moov-vulcano-wave-nodes.s3.eu-central-1.amazonaws.com/
     ├── index.json                  # the registry Stream Designer reads
     ├── changelog.json
     └── <version>/
@@ -108,7 +110,7 @@ The published site keeps every release side by side (it has no landing page — 
 
 Add the catalog to a space once via Stream Designer → **Manage node catalogs** → **Add external catalog**, pasting:
 
-    https://moovit-sp-gmbh.github.io/vulcano-wave-nodes/index.json
+    https://moov-vulcano-wave-nodes.s3.eu-central-1.amazonaws.com/index.json
 
 Later releases show up in that same dialog; a space admin picks the new version per space. Nothing updates by itself, and streams keep the catalog version they were built with.
 
