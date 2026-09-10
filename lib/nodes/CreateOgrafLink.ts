@@ -176,9 +176,13 @@ export default class CreateOgrafLink extends Node {
             link = await this.wave.axiosHelper.makeRequest(requestConfig);
         } catch (err: unknown) {
             throw vulcanoError("Could not create ograf link", err, "verify the Vulcano url, Api token and Asset id", {
-                400: "Vulcano rejected the request (400) — Link expiry days must be between 1 and 365",
+                400: "Vulcano rejected the request (400) — Link expiry days must be a whole number between 1 and 365",
                 404: "Vulcano has no OGraf bundle for that Asset id (404) — verify the asset was converted to OGraf",
             });
+        }
+
+        if (!link.token) {
+            throw new Error("Could not create ograf link — Vulcano returned a link without a token — verify the asset has an OGraf bundle");
         }
 
         this.wave.outputs.setOutput(Output.LINK_ID, link.id);
