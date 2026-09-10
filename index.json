@@ -1,0 +1,13 @@
+{
+  "name": "Vulcano",
+  "description": "Create graphics from templates and manage assets, projects and files in Vulcano",
+  "logo": "https://raw.githubusercontent.com/moovit-sp-gmbh/vulcano-wave-nodes/main/assets/vulcano-logo.png",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "url": "https://moovit-sp-gmbh.github.io/vulcano-wave-nodes",
+      "dev": false,
+      "minimumEngineVersion": "2.0.1"
+    }
+  ]
+}
