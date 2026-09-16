@@ -139,4 +139,8 @@ describe("numberOr", () => {
         expect(numberOr(undefined, 30)).toBe(30);
         expect(numberOr("soon", 30)).toBe(30);
     });
+
+    it("falls back on the 0 the engine makes of a cleared field", () => {
+        expect(numberOr(0, 35)).toBe(35);
+    });
 });
