@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.1.1",
+    "date": "2026-11-25",
+    "changes": [
+      {
+        "description": "Create graphic now skips a Graphic property values entry whose wildcard did not resolve, instead of sending the literal {{ ... }} text to Vulcano",
+        "type": "Bug Fixes",
+        "breaking": false
+      },
+      {
+        "description": "A cleared number field, such as Output duration seconds, Max results or Link expiry days, now falls back to its default instead of using 0",
+        "type": "Bug Fixes",
+        "breaking": false
+      }
+    ]
+  },
+  {
     "version": "1.1.0",
     "date": "2026-09-10",
     "changes": [
