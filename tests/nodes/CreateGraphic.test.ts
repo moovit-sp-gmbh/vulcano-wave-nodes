@@ -15,6 +15,17 @@ describe("toAssetProperties", () => {
     it("stringifies values a wildcard resolved to a number", () => {
         expect(toAssetProperties({ "prop-1": 42 as unknown as string })).toEqual([{ id: "prop-1", value: "42" }]);
     });
+
+    it("drops entries whose wildcard did not resolve", () => {
+        const unresolved = "{{ output.abc.Body.result.response.values[1].id }}";
+        expect(
+            toAssetProperties({
+                "prop-1": "Burscheid, Deutschland",
+                [unresolved]: "{{ output.abc.Body.result.response.values[1].value }}",
+                "prop-2": "{{ output.abc.missing }}",
+            }),
+        ).toEqual([{ id: "prop-1", value: "Burscheid, Deutschland" }]);
+    });
 });
 
 describe("unappliedPropertyIds", () => {

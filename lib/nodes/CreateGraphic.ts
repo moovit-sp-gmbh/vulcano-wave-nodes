@@ -38,10 +38,15 @@ export interface VulcanoAsset {
     outputDurationSeconds?: number;
 }
 
+// A wildcard the engine could not resolve (e.g. a missing list item) stays as literal "{{ ... }}" text.
+const UNRESOLVED_WILDCARD = /\{\{.*\}\}/s;
+
 /** Turns the Graphic property values map into the property array a reduced asset expects. */
 export function toAssetProperties(values: Record<string, string> | undefined): AssetProperty[] {
     if (!values) return [];
-    return Object.entries(values).map(([id, value]) => ({ id, value: String(value) }));
+    return Object.entries(values)
+        .map(([id, value]) => ({ id, value: String(value) }))
+        .filter((property) => !UNRESOLVED_WILDCARD.test(property.id) && !UNRESOLVED_WILDCARD.test(property.value));
 }
 
 // Vulcano drops property ids the template does not own and still answers 200, so the

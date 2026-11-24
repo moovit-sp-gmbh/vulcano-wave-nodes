@@ -2,7 +2,7 @@
 ---
 title: Create graphic
 description: |
-  The Create graphic node creates a new asset from an existing Vulcano template and hands it to the render queue. Point it at the template with Template asset id — typically taken from an upstream List templates node — and fill in the values the template exposes with Graphic property values, keyed by property id. Any property you leave out keeps the value stored on the template, and a property id the template does not have fails the node — Vulcano itself would drop it without a word. The node returns immediately with the queued asset, so wire Graphic id into a Download highres file node once rendering has finished.
+  The Create graphic node creates a new asset from an existing Vulcano template and hands it to the render queue. Point it at the template with Template asset id — typically taken from an upstream List templates node — and fill in the values the template exposes with Graphic property values, keyed by property id. Any property you leave out keeps the value stored on the template, an entry whose wildcard did not resolve (key or value still reads {{ … }}) is skipped, and a property id the template does not have fails the node — Vulcano itself would drop it without a word. The node returns immediately with the queued asset, so wire Graphic id into a Download highres file node once rendering has finished.
 inputs:
   - name: Vulcano url
     description: |
