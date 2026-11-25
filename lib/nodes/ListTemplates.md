@@ -104,41 +104,22 @@ outputs:
     example:
       - name: Template names
         value: '["Lower third"]'
-  - name: Template text fields
-    description: |
-      Returns each template with only its text fields: the text properties a user can fill in, with their id, name, group, current value, character limit (when there is one), whether line breaks are allowed and whether a value is required. Hidden and locked properties, checkboxes, dropdowns, sliders, colours, files and comments are left out, and so are the layer and layout details. Use it to hand a short list to an LLM that fills the values, then pass the ids it returns to Create graphic
-    type: OBJECT
-    example:
-      - name: Template text fields
-        value: |
-          [
-            {
-              "id": "/News/Lower third.mogrt",
-              "name": "Lower third",
-              "textFields": [
-                {
-                  "id": "7f291db7-90d5-422b-b844-eec4d907fab5",
-                  "name": "Headline",
-                  "group": "Text",
-                  "value": "Headline 80-100px\nzwei Zeilen",
-                  "allowLineBreaks": true,
-                  "required": false
-                }
-              ]
-            }
-          ]
   - name: Templates
     description: |
-      Returns the full array of templates from Vulcano (raw response — escape hatch for fields not surfaced by curated outputs)
+      Returns every template with its id and name, and for each property only its id, name and type (STRING, SELECT, CHECKBOX, SLIDER, COMMENT, …). It leaves out the values and the layer and layout details, so the run log stays small enough for helmut.cloud and the list can go straight to an LLM. Pass the property ids it picks to Create graphic
     type: OBJECT
     example:
       - name: Templates
         value: |
           [
             {
-              "id": "/News/Lower third.mogrt",
-              "name": "Lower third",
-              "assetType": "mogrt"
+              "id": "/3Sat/02_Tag und Uhrzeit 2zlg unten.mogrt",
+              "name": "02_Tag und Uhrzeit 2zlg unten",
+              "properties": [
+                { "id": "37b1e90d-b59e-4997-beeb-3653652094c3", "name": "Uhrzeit 02", "preferenceType": "STRING" },
+                { "id": "bae03b89-8619-4044-8d01-da34db17660c", "name": "Uhrzeit", "preferenceType": "STRING" },
+                { "id": "41b7fe25-7693-480b-8fb5-deba1a981a4d", "name": "Tag", "preferenceType": "STRING" }
+              ]
             }
           ]
   - name: Curl

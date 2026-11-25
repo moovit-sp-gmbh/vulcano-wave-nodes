@@ -159,6 +159,17 @@ describe("every node's request reaches Vulcano the way the API expects", () => {
         expect(outputs["Template ids"]).toEqual(["tpl-1"]);
     });
 
+    it("List templates hands out the trimmed templates, not the raw answer", async () => {
+        const property = { id: "p-1", name: "Tag", preferenceType: "STRING", matchNames: ["ADBE Text Document"], layerIndex: 3 };
+        routes["/assets"] = { body: JSON.stringify([{ id: "tpl-1", name: "Lower third", status: "READY", properties: [property] }]) };
+
+        const outputs = await run(new ListTemplates(), {});
+
+        expect(outputs["Templates"]).toEqual([
+            { id: "tpl-1", name: "Lower third", properties: [{ id: "p-1", name: "Tag", preferenceType: "STRING" }] },
+        ]);
+    });
+
     it.each([
         ["Download highres file", () => new DownloadHighresFile(), "/hires"],
         ["Download proxy file", () => new DownloadProxyFile(), "/proxy"],

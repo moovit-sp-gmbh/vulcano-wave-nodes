@@ -1,5 +1,21 @@
 [
   {
+    "version": "2.0.0",
+    "date": "2026-11-25",
+    "changes": [
+      {
+        "description": "List templates now returns in Templates only the id and name of each template and the id, name and type of each property. The full property objects made the run log larger than the 1 MiB helmut.cloud accepts, so a run with several templates was reported as an unexpected crash or stayed queued. Read property values and layer details from Vulcano itself",
+        "type": "Bug Fixes",
+        "breaking": true
+      },
+      {
+        "description": "List templates no longer has the Template text fields output added in 1.2.0. Templates now carries the short property list instead",
+        "type": "Bug Fixes",
+        "breaking": true
+      }
+    ]
+  },
+  {
     "version": "1.2.0",
     "date": "2026-11-25",
     "changes": [
