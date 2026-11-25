@@ -1,4 +1,4 @@
-import { toAssetProperties, unappliedPropertyIds } from "../../lib/nodes/CreateGraphic";
+import { mergeProperties, parsePropertyArray, toAssetProperties, unappliedPropertyIds } from "../../lib/nodes/CreateGraphic";
 
 describe("toAssetProperties", () => {
     it("returns an empty list when no values were entered", () => {
@@ -23,7 +23,7 @@ describe("toAssetProperties", () => {
                 "prop-1": "Burscheid, Deutschland",
                 [unresolved]: "{{ output.abc.Body.result.response.values[1].value }}",
                 "prop-2": "{{ output.abc.missing }}",
-            }),
+            })
         ).toEqual([{ id: "prop-1", value: "Burscheid, Deutschland" }]);
     });
 });
@@ -49,5 +49,55 @@ describe("unappliedPropertyIds", () => {
 
     it("reports nothing when nothing was sent", () => {
         expect(unappliedPropertyIds([], undefined)).toEqual([]);
+    });
+});
+
+describe("parsePropertyArray", () => {
+    it("returns an empty list when nothing was entered", () => {
+        expect(parsePropertyArray(undefined)).toEqual([]);
+        expect(parsePropertyArray("  ")).toEqual([]);
+    });
+
+    it("reads the id/value objects of the array", () => {
+        expect(parsePropertyArray('[{"id": "prop-1", "value": "Breaking news"}, {"id": "prop-2", "value": ""}]')).toEqual([
+            { id: "prop-1", value: "Breaking news" },
+            { id: "prop-2", value: "" },
+        ]);
+    });
+
+    it("sends a value that is not a string as its json text", () => {
+        expect(parsePropertyArray('[{"id": "n", "value": 42}, {"id": "t", "value": [["a", "b"]]}]')).toEqual([
+            { id: "n", value: "42" },
+            { id: "t", value: '[["a","b"]]' },
+        ]);
+    });
+
+    it("drops entries whose wildcard did not resolve", () => {
+        expect(parsePropertyArray('[{"id": "prop-1", "value": "{{ output.abc.missing }}"}]')).toEqual([]);
+    });
+
+    it("fails on text that is not a json array of id/value objects", () => {
+        expect(() => parsePropertyArray("{not json")).toThrow("is not valid json");
+        expect(() => parsePropertyArray('{"prop-1": "x"}')).toThrow("is not an array");
+        expect(() => parsePropertyArray('[{"value": "x"}]')).toThrow("entry 0 has no id or no value");
+        expect(() => parsePropertyArray('[{"id": "prop-1"}]')).toThrow("entry 0 has no id or no value");
+        expect(() => parsePropertyArray("[null]")).toThrow("entry 0 has no id or no value");
+    });
+});
+
+describe("mergeProperties", () => {
+    it("lets the later list override an id given twice", () => {
+        expect(
+            mergeProperties(
+                [
+                    { id: "prop-1", value: "map" },
+                    { id: "prop-2", value: "map" },
+                ],
+                [{ id: "prop-1", value: "array" }]
+            )
+        ).toEqual([
+            { id: "prop-1", value: "array" },
+            { id: "prop-2", value: "map" },
+        ]);
     });
 });

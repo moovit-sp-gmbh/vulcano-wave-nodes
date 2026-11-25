@@ -2,7 +2,7 @@
 ---
 title: Create graphic
 description: |
-  The Create graphic node creates a new asset from an existing Vulcano template and hands it to the render queue. Point it at the template with Template asset id — typically taken from an upstream List templates node — and fill in the values the template exposes with Graphic property values, keyed by property id. Any property you leave out keeps the value stored on the template, an entry whose wildcard did not resolve (key or value still reads {{ … }}) is skipped, and a property id the template does not have fails the node — Vulcano itself would drop it without a word. The node returns immediately with the queued asset, so wire Graphic id into a Download highres file node once rendering has finished.
+  The Create graphic node creates a new asset from an existing Vulcano template and hands it to the render queue. Point it at the template with Template asset id — typically taken from an upstream List templates node — and fill in the values the template exposes with Graphic property values, keyed by property id, or as a json array of id/value objects with Graphic property values json. Any property you leave out keeps the value stored on the template, an entry whose wildcard did not resolve (key or value still reads {{ … }}) is skipped, and a property id the template does not have fails the node — Vulcano itself would drop it without a word. The node returns immediately with the queued asset, so wire Graphic id into a Download highres file node once rendering has finished.
 inputs:
   - name: Vulcano url
     description: |
@@ -44,6 +44,15 @@ inputs:
     example:
       - name: Graphic property values
         value: '{"6f1c1d24-6a63-4d9b-9a0e-6f5a2a4d1c88": "Breaking news"}'
+  - name: Graphic property values json
+    description: |
+      Enter the property values as a json array of objects with an id and a value, for example the result of an upstream node. Use it when a map is not flexible enough: the list can be built by a script or a wildcard, and a value that is not text (a number, a table) is sent as its json text. An id given here overrides the same id in Graphic property values. Text that is not such an array fails the node
+    type: STRING_LONG
+    mandatory: false
+    advanced: true
+    example:
+      - name: Graphic property values json
+        value: '[{"id": "6f1c1d24-6a63-4d9b-9a0e-6f5a2a4d1c88", "value": "Breaking news"}]'
   - name: Output file name
     description: |
       Enter the file name for the rendered graphic. Leave it empty to let Vulcano apply the naming pattern configured on the template. Reusing a name that is already taken in the same folder replaces that graphic: Vulcano deletes the earlier one and hands its id back, unless the instance is configured to allow duplicates
@@ -116,7 +125,7 @@ connectors:
     causes:
       - name: Invalid Input
         description: |
-          If Graphic property values names a property id the template does not have, so the value would have been silently ignored, or if Vulcano rejects the request because Vulcano user is not an existing user (400)
+          If Graphic property values json is not a json array of id/value objects, if Graphic property values names a property id the template does not have, so the value would have been silently ignored, or if Vulcano rejects the request because Vulcano user is not an existing user (400)
       - name: Invalid Configuration
         description: |
           If Output duration seconds is further than 100 seconds from the template's own length, or the template has no known length, so Vulcano rendered a different duration than the one asked for

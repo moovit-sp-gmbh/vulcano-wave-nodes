@@ -12,6 +12,7 @@ enum Input {
     API_TOKEN = "Api token",
     TEMPLATE_ASSET_ID = "Template asset id",
     GRAPHIC_PROPERTY_VALUES = "Graphic property values",
+    GRAPHIC_PROPERTY_VALUES_JSON = "Graphic property values json",
     VULCANO_USER = "Vulcano user",
     OUTPUT_FILE_NAME = "Output file name",
     OUTPUT_DURATION_SECONDS = "Output duration seconds",
@@ -46,7 +47,39 @@ export function toAssetProperties(values: Record<string, string> | undefined): A
     if (!values) return [];
     return Object.entries(values)
         .map(([id, value]) => ({ id, value: String(value) }))
-        .filter((property) => !UNRESOLVED_WILDCARD.test(property.id) && !UNRESOLVED_WILDCARD.test(property.value));
+        .filter(isResolved);
+}
+
+function isResolved(property: AssetProperty): boolean {
+    return !UNRESOLVED_WILDCARD.test(property.id) && !UNRESOLVED_WILDCARD.test(property.value);
+}
+
+const JSON_SHAPE_HINT = 'enter a json array such as [{"id": "6f1c1d24-…", "value": "Breaking news"}]';
+
+/** Parses the Graphic property values json array; a value that is not a string is sent as its json text. */
+export function parsePropertyArray(json: string | undefined): AssetProperty[] {
+    if (!json || json.trim() === "") return [];
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(json);
+    } catch {
+        throw new Error(`Graphic property values json is not valid json — ${JSON_SHAPE_HINT}`);
+    }
+    if (!Array.isArray(parsed)) throw new Error(`Graphic property values json is not an array — ${JSON_SHAPE_HINT}`);
+    return parsed.map(toArrayProperty).filter(isResolved);
+}
+
+function toArrayProperty(entry: unknown, index: number): AssetProperty {
+    const { id, value } = (entry ?? {}) as { id?: unknown; value?: unknown };
+    if (typeof id !== "string" || id === "" || value === undefined) {
+        throw new Error(`Graphic property values json entry ${index} has no id or no value — ${JSON_SHAPE_HINT}`);
+    }
+    return { id, value: typeof value === "string" ? value : JSON.stringify(value) };
+}
+
+/** Joins both property inputs; for an id given twice, the later entry wins. */
+export function mergeProperties(...lists: AssetProperty[][]): AssetProperty[] {
+    return [...new Map(lists.flat().map((property) => [property.id, property])).values()];
 }
 
 // Vulcano drops property ids the template does not own and still answers 200, so the
@@ -64,7 +97,12 @@ export default class CreateGraphic extends Node {
         name: "Create graphic",
         description: "Creates a new asset from a template in Vulcano",
         category: "Assets",
-        version: { major: 1, minor: 0, patch: 0, changelog: ["Initial release"] },
+        version: {
+            major: 1,
+            minor: 1,
+            patch: 0,
+            changelog: ["Initial release", "Graphic property values json takes the values as a json array"],
+        },
         author: { name: "MoovIT Software Products", company: "MoovIT GmbH", email: "info@moovit.de" },
         inputs: [
             {
@@ -101,6 +139,14 @@ export default class CreateGraphic extends Node {
                 type: StreamNodeSpecificationInputType.STRING_MAP,
                 example: { "6f1c1d24-6a63-4d9b-9a0e-6f5a2a4d1c88": "Breaking news" },
                 mandatory: false,
+            },
+            {
+                name: Input.GRAPHIC_PROPERTY_VALUES_JSON,
+                description: "Enter the property values as a json array of id/value objects — they override Graphic property values",
+                type: StreamNodeSpecificationInputType.STRING_LONG,
+                example: '[{"id": "6f1c1d24-6a63-4d9b-9a0e-6f5a2a4d1c88", "value": "Breaking news"}]',
+                mandatory: false,
+                advanced: true,
             },
             {
                 name: Input.OUTPUT_FILE_NAME,
@@ -162,10 +208,11 @@ export default class CreateGraphic extends Node {
         const propertyValues = this.wave.inputs.getInputValueByInputName(Input.GRAPHIC_PROPERTY_VALUES) as
             | Record<string, string>
             | undefined;
+        const propertyJson = this.wave.inputs.getInputValueByInputName(Input.GRAPHIC_PROPERTY_VALUES_JSON) as string | undefined;
         const fileName = this.wave.inputs.getInputValueByInputName(Input.OUTPUT_FILE_NAME) as string | undefined;
         const outputDurationSeconds = numberOr(this.wave.inputs.getInputValueByInputName(Input.OUTPUT_DURATION_SECONDS), 0);
 
-        const properties = toAssetProperties(propertyValues);
+        const properties = mergeProperties(toAssetProperties(propertyValues), parsePropertyArray(propertyJson));
         const requestConfig: AxiosRequestConfig = vulcanoRequest(baseUrl, apiToken, {
             method: "POST",
             url: "/assets",

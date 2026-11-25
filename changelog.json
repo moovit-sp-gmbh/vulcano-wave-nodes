@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.2.0",
+    "date": "2026-11-25",
+    "changes": [
+      {
+        "description": "Create graphic takes its property values as a json array of id/value objects through the new advanced input Graphic property values json. An id given there overrides the same id in Graphic property values",
+        "type": "Features",
+        "breaking": false
+      }
+    ]
+  },
+  {
     "version": "1.1.1",
     "date": "2026-11-25",
     "changes": [
