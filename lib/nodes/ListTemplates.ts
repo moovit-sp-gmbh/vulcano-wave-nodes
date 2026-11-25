@@ -27,13 +27,64 @@ enum Output {
     TOTAL_COUNT = "Total count",
     TEMPLATE_IDS = "Template ids",
     TEMPLATE_NAMES = "Template names",
+    TEMPLATE_TEXT_FIELDS = "Template text fields",
     TEMPLATES = "Templates",
     CURL = "Curl",
+}
+
+export interface TemplateProperty {
+    id: string;
+    name?: string;
+    group?: string;
+    preferenceType?: string;
+    value?: unknown;
+    maxChars?: number;
+    allowLineBreaks?: boolean;
+    required?: boolean;
+    hidden?: boolean;
+    editable?: boolean;
 }
 
 export interface TemplateAsset {
     id: string;
     name?: string;
+    properties?: TemplateProperty[];
+}
+
+export interface TextField {
+    id: string;
+    name: string;
+    group: string;
+    value: unknown;
+    maxChars?: number;
+    allowLineBreaks: boolean;
+    required: boolean;
+}
+
+function isFillableText(property: TemplateProperty): boolean {
+    return property.preferenceType === "STRING" && property.hidden !== true && property.editable !== false;
+}
+
+function toTextField(property: TemplateProperty): TextField {
+    return {
+        id: property.id,
+        name: property.name ?? "",
+        group: property.group ?? "",
+        value: property.value ?? "",
+        // Vulcano stores "no limit" as -1, which only adds noise for the reader.
+        ...(property.maxChars && property.maxChars > 0 ? { maxChars: property.maxChars } : {}),
+        allowLineBreaks: property.allowLineBreaks === true,
+        required: property.required === true,
+    };
+}
+
+/** Each template with only the text fields a user can fill, without the layer and layout details. */
+export function templateTextFields(templates: TemplateAsset[]): { id: string; name: string; textFields: TextField[] }[] {
+    return templates.map((template) => ({
+        id: template.id,
+        name: template.name ?? "",
+        textFields: (template.properties ?? []).filter(isFillableText).map(toTextField),
+    }));
 }
 
 /** Vulcano reports the folder's full size in X-Total-Count; the page length stands in if it is missing. */
@@ -50,7 +101,12 @@ export default class ListTemplates extends Node {
         name: "List templates",
         description: "Lists the templates in a Vulcano template folder",
         category: "Templates",
-        version: { major: 1, minor: 0, patch: 0, changelog: ["Initial release"] },
+        version: {
+            major: 1,
+            minor: 1,
+            patch: 0,
+            changelog: ["Initial release", "Template text fields returns only the fillable text fields of each template"],
+        },
         author: { name: "MoovIT Software Products", company: "MoovIT GmbH", email: "info@moovit.de" },
         inputs: [
             {
@@ -132,6 +188,27 @@ export default class ListTemplates extends Node {
                 example: ["Lower third"],
             },
             {
+                name: Output.TEMPLATE_TEXT_FIELDS,
+                description: "Returns each template with only its fillable text fields and their ids, short enough to hand to an LLM",
+                type: StreamNodeSpecificationOutputType.JSON,
+                example: [
+                    {
+                        id: "/News/Lower third.mogrt",
+                        name: "Lower third",
+                        textFields: [
+                            {
+                                id: "7f291db7-90d5-422b-b844-eec4d907fab5",
+                                name: "Headline",
+                                group: "Text",
+                                value: "Headline 80-100px\nzwei Zeilen",
+                                allowLineBreaks: true,
+                                required: false,
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
                 name: Output.TEMPLATES,
                 description: "Returns the full array of templates from Vulcano",
                 type: StreamNodeSpecificationOutputType.JSON,
@@ -190,6 +267,7 @@ export default class ListTemplates extends Node {
             Output.TEMPLATE_NAMES,
             templates.map((template) => template.name ?? "")
         );
+        this.wave.outputs.setOutput(Output.TEMPLATE_TEXT_FIELDS, templateTextFields(templates));
         this.wave.outputs.setOutput(Output.TEMPLATES, templates);
         this.wave.outputs.setOutput(Output.CURL, this.wave.axiosHelper.convertRequestToCurl(redactToken(requestConfig)));
     }

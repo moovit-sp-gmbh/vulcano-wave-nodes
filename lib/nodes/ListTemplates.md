@@ -104,6 +104,29 @@ outputs:
     example:
       - name: Template names
         value: '["Lower third"]'
+  - name: Template text fields
+    description: |
+      Returns each template with only its text fields: the text properties a user can fill in, with their id, name, group, current value, character limit (when there is one), whether line breaks are allowed and whether a value is required. Hidden and locked properties, checkboxes, dropdowns, sliders, colours, files and comments are left out, and so are the layer and layout details. Use it to hand a short list to an LLM that fills the values, then pass the ids it returns to Create graphic
+    type: OBJECT
+    example:
+      - name: Template text fields
+        value: |
+          [
+            {
+              "id": "/News/Lower third.mogrt",
+              "name": "Lower third",
+              "textFields": [
+                {
+                  "id": "7f291db7-90d5-422b-b844-eec4d907fab5",
+                  "name": "Headline",
+                  "group": "Text",
+                  "value": "Headline 80-100px\nzwei Zeilen",
+                  "allowLineBreaks": true,
+                  "required": false
+                }
+              ]
+            }
+          ]
   - name: Templates
     description: |
       Returns the full array of templates from Vulcano (raw response — escape hatch for fields not surfaced by curated outputs)
